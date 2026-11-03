@@ -291,7 +291,7 @@ function fedwPanel(A){
 }
 function curvePanel(){
   const c=J.cv;if(!c)return"";
-  const T=c.tenors,pts=k=>c[k]?T.filter(t=>c[k].y[t[0]]!=null).map(t=>[t[1],c[k].y[t[0]]]):[];
+  const T=c.tenors.filter(t=>t[0]!=="20Y"),pts=k=>c[k]?T.filter(t=>c[k].y[t[0]]!=null).map(t=>[t[1],c[k].y[t[0]]]):[];
   const Wd=W(),H=190,ML=30,MR=44,MT=8,MB=18,PW=Wd-ML-MR,PH=H-MT-MB;
   const xs=v=>ML+Math.sqrt(v/30)*PW;const all=["now","m3","m6"].flatMap(k=>pts(k).map(q=>q[1]));
   let lo=Math.floor(Math.min(...all)*4)/4,hi=Math.ceil(Math.max(...all)*4)/4;const ys=v=>MT+(hi-v)/(hi-lo)*PH;
