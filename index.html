@@ -435,7 +435,7 @@ function jobsPanel(){
       `新規の失業保険申請は${big(cl[1]/1000)}千件で、解雇は${cl[1]<250000?"広がっていない":"増えている"}。`,
     "いまの米国で失業率が上がりにくいのは、高齢者の早期引退と移民規制で働き手そのものが減っているからだ（Ryo の読み）。雇用者の増加が細くても失業率が上がらないことを、雇用の強さと取り違えない。景気の強さは25〜54歳で見る。",
     `雇用者は前月比${sg(dp,0)}千人、3か月平均${sg(dp3,0)}千人。求人率${f(jo[1],1)}%は失業率${f(u[1],1)}%を${jo[1]>u[1]?"上回り、人手不足はまだ残る":"下回り、人手不足は解けた"}。平均時給は前年比${f(ahe,1)}%で、物価${f(cpi,1)}%を${f(Math.abs(ahe-cpi),1)}${ahe>=cpi?"上回る。実質賃金はプラスだ":"下回る。実質賃金はマイナスで、家計は静かに痩せている"}。`];
-  return panel("雇用",`${ymj(u[0])}`,`<div class="tiles"><div class="tile"><span>失業率</span><b>${f(u[1],1)}%</b></div><div class="tile"><span>労働参加率</span><b>${f(cp[1],1)}%</b></div><div class="tile"><span>25〜54歳</span><b>${f(pr[1],1)}%</b></div>
+  return panel("雇用",`${ymj(u[0])}`,`<div class="hd">失業率${f(u[1],1)}%　参加率${f(cp[1],1)}%<small>25〜54歳 ${f(pr[1],1)}%（1年で${sg(pr[1]-pr12[1],1)}）　16歳以上は1年で${sg(cp[1]-cp12[1],1)}</small></div><div class="tiles"><div class="tile"><span>失業率</span><b>${f(u[1],1)}%</b></div><div class="tile"><span>労働参加率</span><b>${f(cp[1],1)}%</b></div><div class="tile"><span>25〜54歳</span><b>${f(pr[1],1)}%</b></div>
     <div class="tile"><span>雇用者 前月比</span><b>${sg(dp,0)}<small>千人</small></b></div><div class="tile"><span>求人率</span><b>${f(jo[1],1)}%</b></div><div class="tile"><span>平均時給</span><b>${f(ahe,1)}%</b></div></div>
     ${C}${lg([["失業率","#ffb547"],["求人率（JOLTS）","#5fd08e"]])}${C2}${lg([["25〜54歳の参加率（左）","#2ee6ff"],["労働参加率 16歳以上（右）","#b59cff"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
