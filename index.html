@@ -520,6 +520,36 @@ function renderQty(){
 /* ---------- ものさし ---------- */
 function rollZ(P,months){ // P: [[t,v]] (monthly or quarterly); z of v against the previous window of 'months' months
   return P.map((q,i)=>{const w=P.filter(r=>r[0]<=q[0]&&r[0]>q[0]-months*30.44*864e5).map(r=>r[1]);if(w.length<months/3*0.8)return null;const m=mean(w),s=Math.sqrt(mean(w.map(x=>(x-m)**2)));return s?[q[0],(q[1]-m)/s]:null}).filter(Boolean)}
+// the dollar's pendulum. money.json dxym rows: [YYYY-MM, dxy, trend (120-month average), dev, ave (120-month mean of
+// dev), sd, pct (NORMDIST), alloc (gold allocation index), alloc20 (its 240-month average), corr6 (6-month correlation with gold)]
+function dxyPanel(mo,gold){
+  const R=mo.dxym;if(!R||!R.length)return"";
+  const L=R[R.length-1],[m,x,tr,dev,ave,sd,pct,al,a20,c6]=L,z=(dev-ave)/sd,lvl=k=>tr*(1+ave+k*sd);
+  // first touches of -1σ / -2σ / -3σ (none in the 23 / 11 / 11 months before), as in the workbook's flags
+  const flags=[];[[1,23],[2,11],[3,11]].forEach(([k,gap])=>{let lastF=-99;R.forEach((r,i)=>{if(r[3]<r[4]-k*r[5]){if(i-lastF>gap)flags.push([r[0],k]);lastF=i}})});
+  const sp=spSeg("dz",[["10","10年"],["99","2001年〜"]],"10"),y=+SPK.dz;
+  const band=k=>cutY(R.map(r=>[dms(r[0]),r[2]*(1+r[4]+k*r[5])]),y);
+  const S=[{p:band(2),c:"#2ee6ff",w:1,dash:"2 3",op:.6,end:false},{p:band(1),c:"#2ee6ff",w:1,dash:"4 3",op:.8,end:false},{p:band(0),c:"#ffffff",w:1.2,dash:"5 3",op:.8,end:false},
+    {p:band(-1),c:"#ff4d5e",w:1,dash:"4 3",op:.8,end:false},{p:band(-2),c:"#ff4d5e",w:1,dash:"2 3",op:.6,end:false},
+    {p:cutY(R.map(r=>[dms(r[0]),r[2]]),y),c:"#777",w:1,end:false},{p:cutY(R.map(r=>[dms(r[0]),r[1]]),y),c:"#ffb547",w:1.8,dec:2}];
+  const t0=cutY(R.map(r=>[dms(r[0]),r[1]]),y)[0][0];
+  const C=chart(S,{H:220,vlines:flags.filter(f=>dms(f[0])>=t0).map(([mm,k])=>[dms(mm),"−"+k+"σ","#ff4d5e"])});
+  const C2=chart([{p:cutY(R.map(r=>[dms(r[0]),r[7]]),y),bar:true,c:"#ffd27a",op:.8},{p:cutY(R.map(r=>[dms(r[0]),r[8]]),y),c:"#2ee6ff",w:1.4,dec:2}],{H:120,zero:true});
+  const rows=[3,2,1,0,-1,-2,-3].map(k=>`<tr class="${Math.abs(z-k)<.5?"now":""}"><td>${k?(k>0?"+":"−")+Math.abs(k)+"σ":"中心"}</td><td>${f(lvl(k),2)}</td><td>${sg((x/lvl(k)-1)*100,1)}%</td></tr>`).join("");
+  const lastFl=flags.slice().sort((a,b)=>a[0]<b[0]?1:-1)[0];
+  const P=[`ドルは${f(x,2)}で、10年のトレンド${f(tr,2)}の${sg(dev*100,1)}%上にいる。ただ、この10年でドルがトレンドより上にいた平均（中心）は${sg(ave*100,1)}%で、そこから見れば${sg(z)}σ、下から${f(pct*100,0)}%の位置だ。`+
+      (dev>ave?`中心より上、ドル高の側にいる。金の配分指数は${f(al,2)}。ドル高は金安で、厚く買う局面になる。`:`中心より下、ドル安の側にいる。金の配分指数は0で、ドルの振り子から見て金を厚く買う局面ではない。`),
+    `配分指数の20年平均は${f(a20,2)}。${al>a20?"いまはその平均より厚い。":"いまはその平均より薄い。"}`+(lastFl?` 直近のドル安の合図は${ymj(lastFl[0])}の−${lastFl[1]}σ。`:""),
+    c6!=null?`ドルと金の6か月の相関は${sg(c6)}。`+(c6<-.5?"金はドルと逆に動いている。第二層の振り子が効いている。":c6>.5?"金がドルと同じ向きに動いている。いま金を動かしているのはドルではなく、インフレか突発の層だ。":"金とドルの結びつきは弱い。"):""];
+  return panel("第二層　ドルの振り子",`${ymj(m)}　月末`,`<div class="hd">ドル ${sg(z)}σ　下から${f(pct*100,0)}%<small>ドルインデックスの10年トレンドからの乖離を、その10年の中心で補正</small></div>
+    <div class="tiles"><div class="tile"><span>ドルインデックス</span><b>${f(x,2)}</b></div><div class="tile"><span>10年トレンド</span><b>${f(tr,2)}</b></div><div class="tile"><span>中心（σ 0）</span><b>${f(lvl(0),2)}</b></div>
+    <div class="tile"><span>乖離 / 中心</span><b>${sg(dev*100,1)}<small>% / ${sg(ave*100,1)}%</small></b></div><div class="tile"><span>金の配分指数</span><b>${f(al,2)}</b><small>20年平均 ${f(a20,2)}</small></div><div class="tile"><span>ドルと金の相関</span><b>${c6!=null?sg(c6):"–"}</b><small>6か月</small></div></div>
+    ${sp}${C}${lg([["ドルインデックス","#ffb547"],["中心","#fff",1],["+1σ・+2σ","#2ee6ff",1],["−1σ・−2σ","#ff4d5e",1],["10年トレンド","#777"]])}
+    <div class="lbl" style="margin-top:8px">金の配分指数（ドル高ほど厚く）と20年平均</div>${C2}
+    <table class="st"><tr><th>位置</th><th>ドル指数</th><th>いまとの差</th></tr>${rows}</table>
+    <div class="rd">${P.filter(Boolean).map(t=>`<p>${t}</p>`).join("")}</div>
+    ${xpl("ドルの振り子の作り方",[["2段階の補正","ドルインデックスの月末値から、過去120か月の平均（10年トレンド）を引いて比率にする。その乖離の、過去120か月の平均を中心とし、標準偏差で幅を測る。CAPE の補正後乖離と同じ考え方で、長い時間のドルの癖を外す。"],["配分指数","乖離が中心より上（ドル高の側）のときだけ、正規分布の位置を−1〜+1に直して3乗する。ドル高が極端なほど急に厚くなり、中心より下では0。金はドルと逆に動くので、ドル高の端で金を厚く買う。"],["ドル安の合図","乖離が中心から−1σ、−2σ、−3σを割った月に印を付ける（−1σは23か月、−2σと−3σは11か月、前に割っていない初回だけ）。"]])}`);
+}
 function renderRuler(){
   const mo=J.mo;if(!mo||!mo.gold){$("ruler").innerHTML=`<div class="empty">読み込み中…</div>`;return}
   const it=k=>J.mk&&J.mk.items.find(i=>i.k===k);
@@ -529,14 +559,9 @@ function renderRuler(){
     <div class="bigrow"><div><div class="lbl">金で測ったドルの目減り</div><div class="big">${f(lost,1)}<small>%</small></div></div><div class="side">1ドルは金で<br><b class="n">${f(35/gp*100,2)}%</b><br>1971年比</div></div>
     <div class="rd"><p>金の価格が上がったのではない。ドルの価値が下がった。測られる側が動いたのではない。測る側が動いた。</p><p>増やしにくいものだけが、増えたものを測れる。金は誰の負債でもなく、何も生まない。それが物差しの条件だ（『帳簿と物差し』）。</p></div>
     ${xpl("物差しの三条件",[["発行者がいない","誰の負債でもないので、相手が倒れる心配がない。帳簿の外にある。"],["増やしにくい","年の産出は地上の在庫の1%台。増やせるものは価値の尺度にならない。"],["何も生まない","定規は何も生まない。生むのではなく、測る。バフェットの批判は投資家として正しいが、対象が何であるかを決めた後でなければ批判にならない。"]])}`,"hero");
-  // layer 2: the dollar's pendulum
-  const dx=mo.dxy.map(r=>[dms(r[0]),Math.log(r[1])]),z=rollZ(dx,120).filter(q=>q[0]>=Date.UTC(1995,0));
-  const zL=z[z.length-1];
-  const sp=spSeg("dz",[["10","10年"],["99","1995年〜"]],"99");
+  // layer 2: the dollar's pendulum (Ryo's model: workbook sheet GLD)
   const gold=mo.gold.map(r=>[dms(r[0]),r[1]]);
-  const C=chart([{p:cutY(z,+SPK.dz),c:"#2ee6ff",w:1.6,dec:1,end:false},{p:cutY(gold.filter(q=>q[0]>=Date.UTC(1995,0)),+SPK.dz),c:"#ffd27a",w:1.3,r:true,end:false}],{H:190,zero:true,right:true,lc:"#2ee6ff",rc:"#ffd27a",bands:[{lo:1,hi:9,c:"#2ee6ff",o:.08},{lo:-9,hi:-1,c:"#ff4d5e",o:.06}]});
-  const pend=panel("第二層　ドルの振り子",`${ymj(mo.dxy[mo.dxy.length-1][0])}`,`<div class="hd">ドル ${sg(zL[1])}σ<small>ドルインデックス（対数）の10年平均からの距離</small></div>${sp}${C}${lg([["ドルの振り子（左 σ）","#2ee6ff"],["金（右 ドル）","#ffd27a"]])}
-    <div class="rd"><p>${zL[1]>1?"ドル高の端にいる。金はドルに押さえられ、厚く買える位置だ。":zL[1]<-1?"ドル安の端にいる。金はドルの振り子に押し上げられている。":"振り子は真ん中付近にある。"}金は金利ではなく、ドルと逆に動く。ドル高は金安で、厚く買う局面になる。</p></div>`);
+  const pend=dxyPanel(mo,gold);
   // layer 1: the escalator (inflation)
   const cpi=new Map(mo.cpi.map(r=>[r[0],r[1]])),cL=mo.cpi[mo.cpi.length-1][1];
   const real=mo.gold.filter(r=>cpi.has(r[0])).map(r=>[dms(r[0]),r[1]*cL/cpi.get(r[0])]);
