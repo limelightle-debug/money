@@ -100,16 +100,11 @@ table.st tr.now td{color:var(--neon);font-weight:700}
       <button type="button" data-tab="rate" aria-pressed="true">金利</button>
       <button type="button" data-tab="qty" aria-pressed="false">量</button>
       <button type="button" data-tab="ruler" aria-pressed="false">ものさし</button>
-      <button type="button" data-tab="lib" aria-pressed="false">アプリと書籍</button>
     </div>
   </header>
   <main id="rate"></main>
   <main id="qty" hidden></main>
   <main id="ruler" hidden></main>
-  <main id="lib" hidden>
-    <iframe class="frame" id="fApps" title="アプリ"></iframe>
-    <iframe class="frame" id="fBooks" title="書籍"></iframe>
-  </main>
   <div class="foot"></div>
 </div>
 <script src="../fear-index/suite.js"></script>
@@ -588,15 +583,13 @@ function render(){
   show(TAB,true);
 }
 function show(t,keep){
-  if(!["rate","qty","ruler","lib"].includes(t))t="rate";TAB=t;store.set("tab",t);
+  if(!["rate","qty","ruler"].includes(t))t="rate";TAB=t;store.set("tab",t);
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tab===t));
-  ["rate","qty","ruler","lib"].forEach(k=>$(k).hidden=k!==t);
-  if(t==="lib"){const fit=fr=>{try{fr.style.height=fr.contentDocument.documentElement.scrollHeight+"px"}catch(e){}};
-    [["fApps","apps"],["fBooks","books"]].forEach(([id,k])=>{const fr=$(id);if(!fr.src){fr.addEventListener("load",()=>{fit(fr);try{new ResizeObserver(()=>fit(fr)).observe(fr.contentDocument.body)}catch(e){}});fr.src="../fear-index/?embed="+k}else fit(fr)})}
+  ["rate","qty","ruler"].forEach(k=>$(k).hidden=k!==t);
   if(!keep)window.scrollTo(0,0);
 }
 document.addEventListener("click",e=>{
-  const b=e.target.closest("#tabs button");if(b){show(b.dataset.tab);return}
+  const b=e.target.closest("#tabs button[data-tab]");if(b){show(b.dataset.tab);return}
   const s=e.target.closest("[data-sp]");if(s){const [k,v]=s.dataset.sp.split(":");SPK[k]=v;store.set("sp."+k,v);
     const y=window.scrollY;if(TAB==="rate")renderRate();else if(TAB==="qty")renderQty();else renderRuler();window.scrollTo(0,y)}
 });
@@ -606,6 +599,8 @@ setInterval(()=>{if(!document.hidden)load()},15*60*1000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
 if("serviceWorker" in navigator&&!/[?&]shot\b/.test(location.search))navigator.serviceWorker.register("sw.js").catch(()=>{});
 window.Suite&&Suite.foot(".foot");
+// the institute's shared アプリ and 書籍 tabs, as in every app
+window.Suite&&Suite.mount({hide:["main"],after:"#ruler"});
 </script>
 </body>
 </html>
