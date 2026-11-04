@@ -212,26 +212,28 @@ const lastMo=()=>{const a=J.mo&&J.mo.real&&J.mo.real.all;return a&&a[a.length-1]
 
 /* ---------- 金利 ---------- */
 // 自然利子率Now (Ryo's method): LW's latest published quarter, moved by how far a market real rate now stands from its
-// average over that same quarter. LW's r* is the long-run rate (after shocks fade, growth at potential), so the market
+// average over that same quarter, both as 3-month averages: the market rate's trailing 3-month moving average against
+// the quarter's 3-month average, so Now starts from LW at the quarter's end and does not jump day to day. LW's r* is the long-run rate (after shocks fade, growth at potential), so the market
 // rate is the 5-year real rate 5 years ahead (2 × 10Y real − 5Y real), which leaves out the next few years of the cycle.
 // Each day takes the newest LW quarter before its own quarter, as it was known one quarter late.
-// pick(row) gives the market rate from a daily row [d, n2, n10, n30, r5, r10, r30]. Rows: [time, value, LW quarter, avg, rate]
+// pick(row) gives the market rate from a daily row [d, n2, n10, n30, r5, r10, r30]. Rows: [time, value, LW quarter, avg, 3-month MA]
 const qOfK=k=>{k=String(k);return k.slice(0,4)+"-Q"+Math.ceil(+k.slice(4,6)/3)};
 const F55=r=>r[4]!=null&&r[5]!=null?2*r[5]-r[4]:null, R10=r=>r[5];
 function rsNow(pick){
   const all=J.mo&&J.mo.real&&J.mo.real.all||[],H=(J.rs&&J.rs.hist||[]).filter(h=>h[2]!=null);
   const sum={};all.forEach(r=>{const v=pick(r);if(v==null)return;const q=qOfK(r[0]);const a=sum[q]||(sum[q]=[0,0]);a[0]+=v;a[1]++});
-  const out=[];let j=-1;
-  all.forEach(r=>{const v=pick(r);if(v==null)return;const q=qOfK(r[0]);
+  const out=[],win=[];let j=-1,ws=0;
+  all.forEach(r=>{const v=pick(r);if(v==null)return;const q=qOfK(r[0]),t=dms(r[0]);
+    win.push([t,v]);ws+=v;while(t-win[0][0]>91*864e5)ws-=win.shift()[1];const ma=ws/win.length;
     while(j+1<H.length&&H[j+1][0]<q)j++;
     if(j<0)return;const lq=H[j][0],sq=sum[lq];if(!sq)return;
-    const av=sq[0]/sq[1];out.push([dms(r[0]),H[j][2]+v-av,lq,av,v])});
+    const av=sq[0]/sq[1];out.push([t,H[j][2]+ma-av,lq,av,ma])});
   return out}
 // the quarter's average of the market rate for the LW quarter q
 const qAvg=(pick,q)=>{const a=(J.mo&&J.mo.real&&J.mo.real.all||[]).map(r=>qOfK(r[0])===q?pick(r):null).filter(v=>v!=null);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null};
 function rAxisPanel(A,Nw){
   const LR=J.mo&&J.mo.real&&J.mo.real.all||[],last=LR[LR.length-1];
-  const r10=Nw.r10??(last&&last[5]),be=Nw.be10??(last&&last[2]-last[5]),avQ=qAvg(F55,A.q),f55=last?F55(last):null,rNow=avQ!=null&&f55!=null?A.rs+f55-avQ:null,r30=last&&last[6]!=null&&last[0]===Nw.date.replace(/-/g,"")?last[6]:null;
+  const r10=Nw.r10??(last&&last[5]),be=Nw.be10??(last&&last[2]-last[5]),SN=rsNow(F55),sl=SN[SN.length-1],avQ=sl&&sl[2]===A.q?sl[3]:null,f55=avQ!=null?sl[4]:null,rNow=avQ!=null?sl[1]:null,r30=last&&last[6]!=null&&last[0]===Nw.date.replace(/-/g,"")?last[6]:null;
   const Nm=rNow!=null?rNow+2:null,gpm=Nm!=null?Nw.pol-Nm:null;
   const gp=Nw.pol-A.N,g10=Nw.n10-A.n10,gr=r10-A.r10,gb=be-A.be,g30=Nw.n30-A.n30,d=rNow-A.rs;
   const F=J.mo&&J.mo.fomc,lr=F&&F.lr&&F.lr[F.lr.length-1],md=F&&F.median||[];
@@ -261,11 +263,11 @@ function rAxisPanel(A,Nw){
   const hd=gp>.1&&gpm!=null&&gpm<-.1?["LW の中立の上、市場の中立の下","利上げでも、経済の熱は冷えない見方"]:gp>.1&&g10>0?["中立の上で、引き締めが続く","政策も長期も軸の上にある"]:gp>.1?["政策は中立の上、長期は軸の下","市場は先の利下げか減速を見る"]:gp<-.1?["政策はまだ緩和の側","軸までの距離が利上げの余地"]:["政策は軸の上に重なる","振り子は真ん中にある"];
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd[0]}<small>${hd[1]}</small></div>
     <div class="bigrow"><div><div class="lbl">自然利子率Now</div><div class="big">${f(rNow)}<small>%</small></div></div>
-    <div class="side">LW の自然利子率 <b class="n">${f(A.rs)}%</b><br>${qj(A.q)}（一期遅れ）<br>同期の5年先5年実質 <b class="n">${f(avQ)}%</b> → いま <b class="n">${f(f55)}%</b><br>軸とのずれ <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
+    <div class="side">LW の自然利子率 <b class="n">${f(A.rs)}%</b><br>${qj(A.q)}（一期遅れ）<br>5年先5年実質の3か月平均<br>${qj(A.q).replace(/^\d+年/,"")} <b class="n">${f(avQ)}%</b> → 直近 <b class="n">${f(f55)}%</b><br>軸とのずれ <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
-      ["自然利子率Now","LW は四半期ごとで、一期遅れて出る。Now は、その最新の四半期の LW に、5年先から5年間の実質金利がその四半期の3か月平均からいまどれだけ動いたか（差分）を足したもの。LW の自然利子率は、景気への衝撃が消えたあとの長い先の金利だ。10年の実質金利にはこの先数年の利上げや利下げの織り込みが混じるので、5年先から始まる5年間で測り、景気の波の分を外す。毎日動く。LW との差が、軸が逃げているかどうかの手がかりになる。軸そのものは動かさない。"],
+      ["自然利子率Now","LW は四半期ごとで、一期遅れて出る。Now は、その最新の四半期の LW に、5年先から5年間の実質金利の直近3か月の移動平均が、その四半期の3か月平均からどれだけ動いたか（差分）を足したもの。四半期末には LW と一致し、そこから伸びる。LW の自然利子率は、景気への衝撃が消えたあとの長い先の金利だ。10年の実質金利にはこの先数年の利上げや利下げの織り込みが混じるので、5年先から始まる5年間で測り、景気の波の分を外す。毎日動く。LW との差が、軸が逃げているかどうかの手がかりになる。軸そのものは動かさない。"],
       ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`,"hero");
 }
 function rstarPanel(A){
@@ -299,9 +301,9 @@ function rstarPanel(A){
     bt?`バックテスト（${qj(bt.from)}から${bt.n}四半期）：その四半期の Now の平均が前の LW から動いた向きと、あとで公表された LW の動きの向きが一致したのは${Math.round(bt.hit*100)}%。外れの平均は${f(bt.mae)}で、前の LW をそのまま置いた場合の${f(bt.naive)}より大きい。Now は LW の予測ではない。市場が織り込む中立の位置として読む。`:"",
     `LW の推計は直近4四半期で${f(Math.min(...lwQ))}から${f(Math.max(...lwQ))}のあいだ。`+(L[1]-A.rs>.15?"市場の見る中立は、公式の推計より高い場所に移っている。長期金利の上昇を景気のせいだけにはできない。":L[1]-A.rs<-.15?"市場の見る中立は、公式の推計より低い。長期金利は景気の減速を先に映している。":"市場と公式の推計は、ほぼ同じ高さにある。")].filter(Boolean);
   return panel("自然利子率Now",`${mdj(Nw0.date)}`,`<div class="hd">${f(L[1])}%<small>市場の自然利子率と LW の軸</small></div>${sp}${C}
-    ${lg([["Now（LW ＋ 5年先5年実質の四半期平均からの差）","#2ee6ff"],["過去の Now（バックテスト、その時点の LW から計算）","#2ee6ff",1],[`LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"],["LW の最新値（軸として固定）","#fff",1],["FOMC longer run − 2","#ffb547",1]])}
+    ${lg([["Now（LW ＋ 5年先5年実質の3か月平均の差）","#2ee6ff"],["過去の Now（バックテスト、その時点の LW から計算）","#2ee6ff",1],[`LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"],["LW の最新値（軸として固定）","#fff",1],["FOMC longer run − 2","#ffb547",1]])}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("自然利子率とは",[["景気を冷やしも温めもしない実質金利","r* は観測できない。モデルで推計するしかなく、LW と HLW で0.6も違う。本書は LW に固定する。"],["なぜ一期遅れるか","GDP が四半期ごとに出て、改定されるから。2026年第2四半期の推計が8月に出る。危機では土台も動くが、確認が遅れる。だから軸は動かさない。"],["市場版の読み方","LW は四半期ごとの推計で、出るのは一期遅れる。そのあいだに市場の実質金利が動けば、市場が見る自然利子率も動いている。Now は、LW が推計した四半期の5年先5年実質金利（10年の実質金利の2倍から5年の実質金利を引いたもの）の3か月平均を起点に、いまとの差分を LW に足す。"]])}`);
+    ${xpl("自然利子率とは",[["景気を冷やしも温めもしない実質金利","r* は観測できない。モデルで推計するしかなく、LW と HLW で0.6も違う。本書は LW に固定する。"],["なぜ一期遅れるか","GDP が四半期ごとに出て、改定されるから。2026年第2四半期の推計が8月に出る。危機では土台も動くが、確認が遅れる。だから軸は動かさない。"],["市場版の読み方","LW は四半期ごとの推計で、出るのは一期遅れる。そのあいだに市場の実質金利が動けば、市場が見る自然利子率も動いている。Now は、LW が推計した四半期の5年先5年実質金利（10年の実質金利の2倍から5年の実質金利を引いたもの）の3か月平均を起点に、直近3か月の移動平均との差分を LW に足す。"]])}`);
 }
 function policyPanel(A){
   const H=(J.rs.hist||[]).filter(r=>r[0]>="1990"&&r[3]!=null);if(!H.length)return"";
