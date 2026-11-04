@@ -229,13 +229,14 @@ const qAvg=(idx,q)=>{const a=(J.mo&&J.mo.real&&J.mo.real.all||[]).filter(r=>r[id
 function rAxisPanel(A,Nw){
   const LR=J.mo&&J.mo.real&&J.mo.real.all||[],last=LR[LR.length-1];
   const r10=Nw.r10??(last&&last[5]),be=Nw.be10??(last&&last[2]-last[5]),avQ=qAvg(5,A.q),rNow=avQ!=null?A.rs+r10-avQ:null,r30=last&&last[6]!=null&&last[0]===Nw.date.replace(/-/g,"")?last[6]:null;
+  const Nm=rNow!=null?rNow+2:null,gpm=Nm!=null?Nw.pol-Nm:null;
   const gp=Nw.pol-A.N,g10=Nw.n10-A.n10,gr=r10-A.r10,gb=be-A.be,g30=Nw.n30-A.n30,d=rNow-A.rs;
   const F=J.mo&&J.mo.fomc,lr=F&&F.lr&&F.lr[F.lr.length-1],md=F&&F.median||[];
   const yr=new Date(dms(Nw.date)).getUTCFullYear(),dotY=md.find(r=>+r[0].slice(0,4)===yr),dotN=md.find(r=>+r[0].slice(0,4)===yr+1);
   const fwm=J.fw&&J.fw.meetings||[],fl=fwm[fwm.length-1];
   const row=(n,act,ax,gap,sub)=>`<tr${sub?` class="subr"`:""}><td>${n}</td><td>${f(act,act!=null&&Math.abs(act*1000%10)>1e-6&&n.includes("政策")?3:2)}</td><td>${f(ax,ax!=null&&n.includes("政策")?2:2)}</td><td class="${cls(gap)}">${sg(gap)}</td></tr>`;
   const T=`<table class="ax"><tr><th></th><th>実勢</th><th>軸</th><th>乖離</th></tr>
-    ${row("政策金利（誘導目標の中央）",Nw.pol,A.N,gp)}
+    ${row("政策金利（誘導目標の中央）",Nw.pol,A.N,gp)}${Nm!=null?row("政策金利と市場の中立（Now＋2%）",Nw.pol,Nm,gpm,1):""}
     ${row("10年債",Nw.n10,A.n10,g10)}${row("実質金利",r10,A.r10,gr,1)}${row("期待インフレ",be,A.be,gb,1)}
     ${row("30年債",Nw.n30,A.n30,g30)}${r30!=null?row("実質金利",r30,A.r30,r30-A.r30,1)+row("期待インフレ",Nw.n30-r30,A.be30,Nw.n30-r30-A.be30,1):""}
     ${dotY?row(`ドット ${yr}年末`,dotY[1],A.N,dotY[1]-A.N):""}${dotN?row(`ドット ${yr+1}年末`,dotN[1],A.N,dotN[1]-A.N):""}
@@ -249,7 +250,12 @@ function rAxisPanel(A,Nw){
   P.push(`30年の乖離は${sg(g30)}`+(r30!=null?`で、実質${sg(r30-A.r30)}と期待インフレ${sg(Nw.n30-r30-A.be30)}に分かれる。`:"。")+(Math.abs(g30)<Math.abs(g10)?"10年より軸に近い。長い側ほど軸に寄る形は、市場が遠い先には中立へ戻ると見ていることを示す。":"10年より軸から遠い。遠い先の不確かさに、市場が上乗せを求めている。"));
   if(lr)P.push(`FOMC の longer run ${f(lr[1],1)}は軸より${f(A.N-lr[1])}低い。委員の想定する中立は LW より低いのに、置いている金利は軸の上にある。言葉と行動が違う。`);
   P.push(`市場の自然利子率は${f(rNow)}%で、LW の${f(A.rs)}%との差は${sg(d)}。`+(Math.abs(d)<.15?"市場は軸を認めている。":d>0?"市場は軸が上に逃げたと見ている。成長か、AI が押し上げる資本の収益率か。確かめる術はまだない。":"市場は軸より低い中立を見ている。景気の減速か、利下げの先取りだ。"));
-  const hd=gp>.1&&g10>0?["中立の上で、引き締めが続く","政策も長期も軸の上にある"]:gp>.1?["政策は中立の上、長期は軸の下","市場は先の利下げか減速を見る"]:gp<-.1?["政策はまだ緩和の側","軸までの距離が利上げの余地"]:["政策は軸の上に重なる","振り子は真ん中にある"];
+  // policy against the market's neutral (自然利子率Now + 2%), and what the split of the long rates says
+  if(gpm!=null){const g30b=r30!=null?Nw.n30-r30-A.be30:null,cool=gb<0&&gr>0&&(g30b==null||g30b<0);
+    P.push(`自然利子率Now で作る名目中立は${f(Nm)}%。`+(gpm<-.1?`政策金利${f(Nw.pol,3)}%はその${f(-gpm)}下にある。LW の軸では${gp>.1?"引き締めの側でも":"中立のそばでも"}、市場の見る中立では、まだ緩和の側だ。`:gpm>.1?`政策金利はその${f(gpm)}上にあり、市場の見る中立で測っても引き締めが効く位置にある。`:`政策金利はそれとほぼ重なり、市場の見る中立では、アクセルもブレーキも踏んでいない。`)
+      +(cool?`期待インフレは10年で軸の${sg(gb)}${g30b!=null?`、30年で${sg(g30b)}`:""}と下にあり、実質金利は上にある。市場は、利上げで抑えられるのは物価で、経済の熱は冷えないと見ている。`:"")
+      +"実質金利の高さには、成長が中立そのものを押し上げた分と、国債の増発で投資家が求める上乗せ（タームプレミアム）の分が混じる。この数字だけでは、その2つは分けられない。")}
+  const hd=gp>.1&&gpm!=null&&gpm<-.1?["LW の中立の上、市場の中立の下","利上げでも、経済の熱は冷えない見方"]:gp>.1&&g10>0?["中立の上で、引き締めが続く","政策も長期も軸の上にある"]:gp>.1?["政策は中立の上、長期は軸の下","市場は先の利下げか減速を見る"]:gp<-.1?["政策はまだ緩和の側","軸までの距離が利上げの余地"]:["政策は軸の上に重なる","振り子は真ん中にある"];
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd[0]}<small>${hd[1]}</small></div>
     <div class="bigrow"><div><div class="lbl">自然利子率Now</div><div class="big">${f(rNow)}<small>%</small></div></div>
     <div class="side">LW の自然利子率 <b class="n">${f(A.rs)}%</b><br>${qj(A.q)}（一期遅れ）<br>同期の10年実質平均 <b class="n">${f(avQ)}%</b> → いま <b class="n">${f(r10)}%</b><br>軸とのずれ <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
