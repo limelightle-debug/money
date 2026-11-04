@@ -250,54 +250,45 @@ function rAxisPanel(A,Nw){
     ${fl?row(`市場の織り込み（${mdj(fl.date)}会合後）`,fl.after,A.N,fl.after-A.N):""}</table>`;
   // the reading
   const P=[];
-  P.push(gp>.1?`政策金利は軸の上${f(gp,3)}。中立を上に抜け、引き締めの側に立っている。`:gp<-.1?`政策金利は軸の下${f(-gp,3)}。まだ緩和の側にいる。`:`政策金利は軸とほぼ重なる。アクセルもブレーキも踏んでいない位置だ。`);
-  const byB=Math.abs(gb)>Math.abs(gr);
-  P.push(`10年の乖離${sg(g10)}は、実質${sg(gr)}と期待インフレ${sg(gb)}に分かれる。`+(byB?(gb>0?"長期金利を軸から押し上げているのは実質の重力ではなく、物価への疑いだ。株の分母はまだ重くなっていない。":"期待インフレが軸を下回り、長期金利を軸の下へ引いている。物価への安心が金利を軽くしている。"):(gr>0?"軸から離しているのは実質金利、つまり重力そのものだ。株の分母が重くなっている。":"実質金利が軸を下回り、重力は弱い。株にとっては追い風の側だ。")));
-  P.push(`30年の乖離は${sg(g30)}`+(r30!=null?`で、実質${sg(r30-A.r30)}と期待インフレ${sg(Nw.n30-r30-A.be30)}に分かれる。`:"。")+(Math.abs(g30)<Math.abs(g10)?"10年より軸に近い。長い側ほど軸に寄る形は、市場が遠い先には中立へ戻ると見ていることを示す。":"10年より軸から遠い。遠い先の不確かさに、市場が上乗せを求めている。"));
-  if(lr)P.push(`FOMC の longer run ${f(lr[1],1)}は、LW の軸より${f(A.N-lr[1])}低い。委員の手元にある自然利子率は一期遅れの推計で、そこからどれだけ離すかは18人が各自で決めてドットを打つ。遅れた起点に各自の乖離が乗るから、指針がずれ、ドットもずれる。`+(rNow!=null?`遅れのあいだに市場の自然利子率は LW から${sg(d)}動いた。そのぶん、委員の見る中立は実勢から遅れている。`:""));
-  if(gNow!=null)P.push(`GDP から推計する自然利子率Now は${f(gNow)}%で、LW の${f(A.rs)}%から${Math.abs(gNow-A.rs)<.1?"ほとんど動かない見込みだ":`${sg(gNow-A.rs)}${gNow>A.rs?"上がる":"下がる"}見込みだ`}。LW は実質GDP の伸びが約${f(-LN.coef[0]/LN.coef[1],1)}%を超える四半期に上がり、下回る四半期に下がる。`);
-  P.push(`市場の自然利子率（5年先5年実質から）は${f(rNow)}%で、LW の${f(A.rs)}%との差は${sg(d)}。`+(gNow!=null?`GDP から見る Now との差${sg(rNow-gNow)}は、成長の伸びでは説明できない分だ。`:"")+(Math.abs(d)<.15?"市場は軸を認めている。":d>0?"市場は軸が上に逃げたと見ている。成長か、AI が押し上げる資本の収益率か。確かめる術はまだない。":"市場は軸より低い中立を見ている。景気の減速か、利下げの先取りだ。"));
-  // policy against the market's neutral (自然利子率Now + 2%), and what the split of the long rates says
-  if(gpm!=null){const g30b=r30!=null?Nw.n30-r30-A.be30:null,cool=gb<0&&gr>0&&(g30b==null||g30b<0);
-    P.push(`市場の自然利子率（5年先5年実質から）で作る名目中立は${f(Nm)}%。`+(gpm<-.1?`政策金利${f(Nw.pol,3)}%はその${f(-gpm)}下にある。LW の軸では${gp>.1?"引き締めの側でも":"中立のそばでも"}、市場の見る中立では、まだ緩和の側だ。`:gpm>.1?`政策金利はその${f(gpm)}上にあり、市場の見る中立で測っても引き締めが効く位置にある。`:`政策金利はそれとほぼ重なり、市場の見る中立では、アクセルもブレーキも踏んでいない。`)
-      +(cool?`期待インフレは10年で軸の${sg(gb)}${g30b!=null?`、30年で${sg(g30b)}`:""}と下にあり、実質金利は上にある。市場は、利上げで抑えられるのは物価で、経済の熱は冷えないと見ている。`:"")
-      +"実質金利の高さには、成長が中立そのものを押し上げた分と、国債の増発で投資家が求める上乗せ（タームプレミアム）の分が混じる。この数字だけでは、その2つは分けられない。")}
-  const hd=gp>.1&&gpm!=null&&gpm<-.1?["LW の中立の上、市場の中立の下","利上げでも、経済の熱は冷えない見方"]:gp>.1&&g10>0?["中立の上で、引き締めが続く","政策も長期も軸の上にある"]:gp>.1?["政策は中立の上、長期は軸の下","市場は先の利下げか減速を見る"]:gp<-.1?["政策はまだ緩和の側","軸までの距離が利上げの余地"]:["政策は軸の上に重なる","振り子は真ん中にある"];
+  // one reading: the market's neutral against the official one and the policy rate; then what lifts the long rates
+  if(rNow!=null)P.push(`市場の自然利子率は${f(rNow)}%で、公式の LW（${f(A.rs)}%、一期遅れ）より${sg(d)}`+(d>.15?"高い。":d<-.15?"低い。":"の差で、ほぼ同じ高さだ。")
+    +`これで作る名目中立は${f(Nm)}%。政策金利${f(Nw.pol,3)}%は`+(gpm<-.1?`その${f(-gpm)}下にあり、市場から見ると引き締めは効いていない。`:gpm>.1?`その${f(gpm)}上にあり、市場から見ても引き締めの側だ。`:`それとほぼ同じ高さで、市場から見ると引き締めは効いていない。`)
+    +(lr?`委員のドット（longer run ${f(lr[1],1)}）は一期遅れの公式の推計から引かれ、市場の中立よりさらに下にある。`:""));
+  {const g30b=r30!=null?Nw.n30-r30-A.be30:null;
+   P.push(`長期金利は10年で軸の${sg(g10)}${r30!=null?`、30年で${sg(g30)}`:""}。`+(gr>0&&gb<0?`押し上げているのは実質金利（10年${sg(gr)}${r30!=null?`、30年${sg(r30-A.r30)}`:""}）で、期待インフレは軸の下（10年${sg(gb)}${g30b!=null?`、30年${sg(g30b)}`:""}）にある。物価は抑えられ、経済の熱は冷えていない見方だ。`:gr>0?`実質金利も期待インフレも軸の上にある。`:`実質金利は軸の${sg(gr)}、期待インフレは${sg(gb)}。`))}
+  const hd=gpm==null?["軸と実勢",""]:gpm>.1?["市場の中立で見ても、政策は引き締めの側",`市場の自然利子率は公式より${sg(d)}`]:["市場の中立から見ると、引き締めは効いていない",`市場の自然利子率は公式より${sg(d)}`];
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd[0]}<small>${hd[1]}</small></div>
-    <div class="bigrow"><div><div class="lbl">自然利子率Now（${lnp?qj(lnp[0]).replace(/^\d+年/,""):""}）</div><div class="big">${f(gNow??rNow)}<small>%</small></div></div>
-    <div class="side">LW の自然利子率 <b class="n">${f(A.rs)}%</b><br>${qj(A.q)}（一期遅れ）${lnp?`<br>${lnp[2]==="GDPNow"?"GDPNow":"実質GDP"} <b class="n">${f(lnp[1],2)}%</b> から推計`:""}<br>市場の自然利子率 <b class="n">${f(rNow)}%</b></div></div>${T}
+    <div class="bigrow"><div><div class="lbl">市場の自然利子率</div><div class="big">${f(rNow)}<small>%</small></div></div>
+    <div class="side">公式 LW <b class="n">${f(A.rs)}%</b>（${qj(A.q).replace(/^\d+年/,"")}、一期遅れ）${lnp?`<br>GDP からの見込み <b class="n">${f(gNow)}%</b>（${qj(lnp[0]).replace(/^\d+年/,"")}）`:""}<br>公式との差 <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
-      ["自然利子率Now","LW は四半期ごとで、一期遅れて出る。Now は、その最新の四半期の LW に、5年先から5年間の実質金利の直近3か月の移動平均が、その四半期の3か月平均からどれだけ動いたか（差分）を足したもの。四半期末には LW と一致し、そこから伸びる。LW の自然利子率は、景気への衝撃が消えたあとの長い先の金利だ。10年の実質金利にはこの先数年の利上げや利下げの織り込みが混じるので、5年先から始まる5年間で測り、景気の波の分を外す。毎日動く。LW との差が、軸が逃げているかどうかの手がかりになる。軸そのものは動かさない。"],
+      ["市場の自然利子率","公式の LW は四半期ごとで、一期遅れて出る。市場の自然利子率は、最新の LW に、5年先から5年間の実質金利の直近3か月平均がその四半期の3か月平均からどれだけ動いたか（差分）を足したもの。LW と同じく、景気の波が消えたあとの長い先を見る。"],
       ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`,"hero");
 }
 function rstarPanel(A){
-  const LN=J.mo&&J.mo.lwnow;if(!LN||!LN.path)return"";
-  // LW over its own quarter (2026-Q2 is April to June). Now, like GDPNow, covers the quarters LW has not published:
-  // each one's LW chained from the last published value with its GDP (the BEA's, or GDPNow for the quarter it tracks).
-  // Dotted: the backtest, each quarter's Now as it would have been estimated then (only the data before it)
+  // two lines: the official LW over its own quarters (2026-Q2 is April to June) and the market's natural rate, every day
+  // from LW's end (before that each quarter re-anchors on a new LW and the line would only jump)
+  const S=rsNow(F55);if(!S.length)return"";
   const qSE=k=>{const m=k.match(/^(\d{4})-Q(\d)$/);return[Date.UTC(+m[1],(+m[2]-1)*3,1),Date.UTC(+m[1],+m[2]*3,1)]};
   const HQ=(J.rs.hist||[]).filter(r=>r[0]>="2003"&&r[2]!=null),LW=HQ.map(r=>[qSE(r[0])[0],r[2]]);
   const lwEnd=qSE(A.q)[1];LW.push([lwEnd,A.rs]);
-  const today=dms(Nw0.date),PT=LN.base[0]===A.q?LN.path:[];
-  const nowS=[[lwEnd,A.rs]].concat(PT.map(p=>[qSE(p[0])[0],p[4]]));if(PT.length)nowS.push([Math.min(qSE(PT[PT.length-1][0])[1],today),PT[PT.length-1][4]]);
-  const bt=(LN.hist||[]).map(h=>[qSE(h[0])[0],h[2]]);if(LN.hist&&LN.hist.length)bt.push([qSE(LN.hist[LN.hist.length-1][0])[1],LN.hist[LN.hist.length-1][2]]);
-  const F=J.mo.fomc&&J.mo.fomc.lr||[],lr=F.map(r=>[dms(r[0]),r[1]-2]);
   const sp=spSeg("rs",[["1","1年"],["5","5年"],["99","2003年〜"]],"5"),y=+SPK.rs;
-  const t0=y>=99?Date.UTC(2003,0,1):today-y*365.25*864e5;
-  const cutT=P=>P.filter(q=>q[0]>=t0-100*864e5);
-  const C=chart([{p:cutT(bt),c:"#2ee6ff",w:1.1,step:true,ext:false,dash:"2 3",op:.75,end:false,u:"%"},{p:cutT(LW),c:"#ffffff",w:2,step:true,ext:false,end:false,u:"%"},{p:nowS,c:"#2ee6ff",w:2.2,step:true,ext:false,u:"%"},{p:lr.filter(q=>q[0]>=t0-400*864e5),c:"#ffb547",w:1.4,step:true,dash:"4 3",u:"%"}],{H:210,t0});
-  const L=PT.length?PT[PT.length-1]:null,b=LN.bt,b10=LN.bt10,be=-LN.coef[0]/LN.coef[1];
-  const P=[`LW は${qj(A.q)}の${f(A.rs)}まで。`+PT.map(p=>`${qj(p[0]).replace(/^\d+年/,"")}は${p[2]==="GDPNow"?"GDPNow":"実質GDP（速報）"}${f(p[1],2)}%から${f(p[4])}`).join("、")+"と見込む。",
-    `LW は、実質GDP の伸び（前期比年率）が約${f(be,1)}%を超える四半期に上がり、下回る四半期に下がる。コアPCE の伸びが加速する四半期にも上がる（ΔLW = ${f(LN.coef[0],3)} + ${f(LN.coef[1],3)}×GDP + ${f(LN.coef[2],3)}×Δコア PCE、1962年から、コロナ期を除く）。`,
-    LN.evo&&LN.evo.length>1?`GDPNow が更新されるたびに Now も動く。`+LN.evo.slice(-4).map(e=>`${mdj(e[0])} ${f(e[1],2)}% → ${f(e[2])}`).join("、")+"。":"",
-    `バックテスト（${qj(b.from)}から${b.n}四半期、その時点までのデータだけで推計）：向きの一致${Math.round(b.hit*100)}%、外れの平均${f(b.mae,3)}（前の LW をそのまま置くと${f(b.naive,3)}）。2010年以降は${Math.round(b10.hit*100)}%、${f(b10.mae,3)}（${f(b10.naive,3)}）。`].filter(Boolean);
-  return panel("自然利子率Now",`${mdj(Nw0.date)}`,`<div class="hd">${L?f(L[4]):"–"}%<small>次に公表される LW の見込み（${L?qj(L[0]):""}）</small></div>${sp}${C}
-    ${lg([["Now（未公表の四半期の LW の見込み）","#2ee6ff"],["バックテスト（その時点で推計した Now）","#2ee6ff",1],[`LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"],["FOMC longer run − 2","#ffb547",1]])}
+  const t0=cutY(S.map(q=>[q[0],q[1]]),y)[0][0],M=[[lwEnd,A.rs]].concat(S.filter(q=>q[0]>=lwEnd).map(q=>[q[0],q[1]]));
+  const C=chart([{p:LW.filter(q=>q[0]>=t0-100*864e5),c:"#ffffff",w:2,step:true,ext:false,u:"%"},{p:M,c:"#2ee6ff",w:1.8,u:"%"}],{H:210,t0});
+  const L=S[S.length-1],a3=S.filter(q=>q[0]<=L[0]-91*864e5).pop(),d=L[1]-A.rs;
+  const LN=J.mo&&J.mo.lwnow,lp=LN&&LN.path&&LN.path.length&&LN.base[0]===A.q?LN.path[LN.path.length-1]:null;
+  const P=[`市場の自然利子率は${f(L[1])}%で、3か月で${sg(L[1]-a3[1])}動いた。公式の LW は${qj(A.q)}の${f(A.rs)}%で止まっている。`+(d>.15?`市場は公式より${f(d)}高い場所に中立を置いている。`:d<-.15?`市場は公式より${f(-d)}低い場所に中立を置いている。`:"市場と公式は、ほぼ同じ高さにある。")];
+  const xs=[["市場の自然利子率","最新の LW に、5年先から5年間の実質金利（10年の実質金利の2倍から5年の実質金利を引いたもの）の直近3か月平均が、その LW の四半期の3か月平均からどれだけ動いたかを足す。LW と同じく、景気の波が消えたあとの長い先の金利を見るため、近い先の利上げ・利下げの織り込みが混じる10年の実質金利は使わない。"],
+    ["公式の LW","ニューヨーク連銀の LW モデル。GDP と物価から推計する。四半期ごとで、一期遅れて出る（8月に4〜6月の値）。本書はこれを軸に固定する。"]];
+  if(LN&&LN.bt)xs.push(["LW の次の値の見込み",`LW は GDP と物価のモデルなので、市場の金利では当てられない（市場の自然利子率の動きと次の LW の動きの向きの一致は五分五分）。GDP からは当てられる。ΔLW = ${f(LN.coef[0],3)} + ${f(LN.coef[1],3)}×実質GDP（前期比年率） + ${f(LN.coef[2],3)}×Δコア PCE。実質GDP の伸びが約${f(-LN.coef[0]/LN.coef[1],1)}%を超える四半期に LW は上がる。バックテスト（${qj(LN.bt.from)}から${LN.bt.n}四半期）で向きの一致${Math.round(LN.bt.hit*100)}%、外れの平均${f(LN.bt.mae,3)}（前の LW のままなら${f(LN.bt.naive,3)}）。`+(lp?`いまの見込みは${qj(lp[0])}で${f(lp[4])}%（${lp[2]==="GDPNow"?"GDPNow":"実質GDP"} ${f(lp[1],2)}%から）。`:"")]);
+  xs.push(["自然利子率とは","景気を冷やしも温めもしない実質金利。観測できず、モデルで推計するしかない。LW と HLW で0.6も違う。"]);
+  return panel("自然利子率",`${mdj(Nw0.date)}`,`<div class="hd">${f(L[1])}%<small>市場の自然利子率と公式の LW</small></div>${sp}${C}
+    ${lg([["市場の自然利子率（毎日）","#2ee6ff"],[`公式 LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"]])}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("自然利子率Now の作り方",[["GDPNow と同じ考え方","LW は一期遅れて出る。Now は、まだ公表されていない四半期の LW を、その四半期の実質GDP とコア PCE から先回りして見込む。GDP の速報が出ていればそれを、出ていなければ GDPNow を使う。"],["なぜ GDP か","LW は GDP と物価から自然利子率を推計するモデルだ。市場の実質金利はほとんど使わない。だから市場の金利では LW を当てられず（向きの一致は五分五分）、GDP では当てられる。"],["市場の自然利子率との違い","5年先5年実質から作る市場の自然利子率は、市場がいま中立をどこに置いているかを示す。Now は公式の推計がどこへ動くかを示す。2つの差は、成長の伸びでは説明できない分だ。"]])}`);
+    ${xpl("自然利子率の作り方",xs)}`);
 }
+
 
 function policyPanel(A){
   const H=(J.rs.hist||[]).filter(r=>r[0]>="1990"&&r[3]!=null);if(!H.length)return"";
