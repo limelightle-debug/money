@@ -289,10 +289,10 @@ function fedwPanel(A){
     <div class="rd">${P.filter(Boolean).map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("3つの乖離",[["政策金利との乖離","FOMC が実際に置いている金利と軸の差。"],["ドットプロットとの乖離","ドットは予測ではなく、委員が適切だと考える水準。年ごとの中央値の修正の向きを見る。"],["市場金利との乖離","FF 先物から読む会合後の金利と、10年・30年の利回りが軸からどれだけ離れているか。3つの差が、いま何が起きているかを示す（第八章）。"]])}`);
 }
-// the yield curve: 3M, 2Y, 5Y, 10Y, 30Y only, drawn as in the institute's paper (same colours, smooth line, glow)
+// the yield curve: 3M, 2Y, 10Y, 30Y only, drawn as in the institute's paper (same colours, smooth line, glow)
 const RC={now:"#f2f2f7",m3:"#2ee6ff",m6:"#8a8aa6"};
 function curveSvg(c,W){
-  const H=230,ML=28,MR=40,MT=10,MB=20,PW=W-ML-MR,PH=H-MT-MB,T=c.tenors.filter(([k])=>["3M","2Y","5Y","10Y","30Y"].includes(k));
+  const H=230,ML=28,MR=40,MT=10,MB=20,PW=W-ML-MR,PH=H-MT-MB,T=c.tenors.filter(([k])=>["3M","2Y","10Y","30Y"].includes(k));
   const xs=v=>Math.sqrt(v),x0=xs(T[0][1]),x1=xs(T[T.length-1][1]),x=v=>ML+(xs(v)-x0)/(x1-x0)*PW;
   const Q=[c.now,c.m3,c.m6].filter(Boolean),all=Q.flatMap(q=>T.map(([k])=>q.y[k]).filter(v=>v!=null));
   const lo=Math.floor(Math.min(...all)*2)/2,hi=Math.ceil(Math.max(...all)*2)/2,y=v=>MT+(hi-v)/(hi-lo)*PH;
