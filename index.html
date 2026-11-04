@@ -273,27 +273,33 @@ function rstarPanel(A){
   const S10=rsNow(F55);if(!S10.length)return"";
   // LW over its own quarter (2026-Q2 is April to June), not when it was published. Like GDPNow, Now covers only the
   // quarters LW has not published yet: it starts from LW's end (the last quarter's value at its last day) and runs to
-  // today; the fixed axis continues dashed beside it
+  // today; the fixed axis continues dashed beside it. Past Now (each day against the LW known then) is dotted
   const qSE=k=>{const m=k.match(/^(\d{4})-Q(\d)$/);return[Date.UTC(+m[1],(+m[2]-1)*3,1),Date.UTC(+m[1],+m[2]*3,1)]};
   const HQ=(J.rs.hist||[]).filter(r=>r[0]>="2003"&&r[2]!=null),LW=HQ.map(r=>[qSE(r[0])[0],r[2]]);
   const lwEnd=qSE(A.q)[1];LW.push([lwEnd,A.rs]);
   const tail=S=>[[lwEnd,A.rs]].concat(S.filter(q=>q[0]>=lwEnd).map(q=>[q[0],q[1]]));
-  const s10=tail(S10);
+  const s10=tail(S10),past=S10.filter(q=>q[0]<lwEnd).map(q=>[q[0],q[1]]);
   const F=J.mo.fomc&&J.mo.fomc.lr||[],lr=F.map(r=>[dms(r[0]),r[1]-2]);
   const sp=spSeg("rs",[["1","1年"],["5","5年"],["99","2003年〜"]],"5"),y=+SPK.rs;
   const t0=cutY(S10,y)[0][0],tEnd=s10[s10.length-1][0];
   const lw=LW.filter(q=>q[0]>=t0-120*864e5);
-  const C=chart([{p:lw.length?lw:LW.slice(-2),c:"#ffffff",w:2,step:true,ext:false,end:false,u:"%"},{p:tEnd>lwEnd?[[lwEnd,A.rs],[tEnd,A.rs]]:[],c:"#ffffff",w:1.2,dash:"3 4",op:.7,u:"%"},{p:s10,c:"#2ee6ff",w:1.8,u:"%"},{p:lr.filter(q=>q[0]>=t0-400*864e5),c:"#ffb547",w:1.4,step:true,dash:"4 3",u:"%"}],{H:210,t0});
+  const C=chart([{p:lw.length?lw:LW.slice(-2),c:"#ffffff",w:2,step:true,ext:false,end:false,u:"%"},{p:tEnd>lwEnd?[[lwEnd,A.rs],[tEnd,A.rs]]:[],c:"#ffffff",w:1.2,dash:"3 4",op:.7,u:"%"},{p:cutY(past,y),c:"#2ee6ff",w:1.1,dash:"2 3",op:.75,end:false,u:"%"},{p:s10,c:"#2ee6ff",w:1.8,u:"%"},{p:lr.filter(q=>q[0]>=t0-400*864e5),c:"#ffb547",w:1.4,step:true,dash:"4 3",u:"%"}],{H:210,t0});
   const L=s10[s10.length-1],nowQ=s10.slice(1),hi=Math.max(...nowQ.map(q=>q[1])),lo=Math.min(...nowQ.map(q=>q[1]));
   // the average of Now over each unpublished quarter: where LW for that quarter would land if it followed the market
   const nq=k=>{const [Y,Q]=k.split("-Q").map(Number);return Q===4?`${Y+1}-Q1`:`${Y}-Q${Q+1}`};
   const qs=[];for(let q=nq(A.q);qSE(q)[0]<=tEnd;q=nq(q)){const v=S10.filter(p=>p[0]>=qSE(q)[0]&&p[0]<qSE(q)[1]).map(p=>p[1]);if(v.length)qs.push([q,v.reduce((a,b)=>a+b,0)/v.length,qSE(q)[1]<=tEnd])}
+  // backtest: for each published quarter, Now's average over it (anchored on the LW before it) against the LW published for it
+  const bt=(()=>{const m={};S10.forEach(p=>{const d=new Date(p[0]),k=`${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth()/3)+1}`;(m[k]=m[k]||[]).push(p[1])});
+    const R=[];for(let i=1;i<HQ.length;i++){const v=m[HQ[i][0]];if(v)R.push([HQ[i][0],HQ[i-1][2],v.reduce((a,b)=>a+b,0)/v.length,HQ[i][2]])}
+    if(R.length<8)return null;const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
+    return{from:R[0][0],n:R.length,hit:mean(R.map(([,p,n,a])=>(n-p)*(a-p)>0?1:0)),mae:mean(R.map(([,,n,a])=>Math.abs(n-a))),naive:mean(R.map(([,p,,a])=>Math.abs(p-a)))}})();
   const lwQ=(J.rs.hist||[]).slice(-4).map(r=>r[2]);
   const P=[`LW は${qj(A.q)}の${f(A.rs)}まで。そこから先の未公表の期間で、自然利子率Now は${sg(L[1]-A.rs)}動き、いま${f(L[1])}。この間の幅は${f(lo)}から${f(hi)}。`,
-    qs.length?qs.map(([q,v,done])=>`${qj(q)}の平均は${f(v)}${done?"":"（途中）"}`).join("、")+"。次に公表される LW の目安になる。":"",
+    qs.length?qs.map(([q,v,done])=>`${qj(q)}の平均は${f(v)}${done?"":"（途中）"}`).join("、")+"。":"",
+    bt?`バックテスト（${qj(bt.from)}から${bt.n}四半期）：その四半期の Now の平均が前の LW から動いた向きと、あとで公表された LW の動きの向きが一致したのは${Math.round(bt.hit*100)}%。外れの平均は${f(bt.mae)}で、前の LW をそのまま置いた場合の${f(bt.naive)}より大きい。Now は LW の予測ではない。市場が織り込む中立の位置として読む。`:"",
     `LW の推計は直近4四半期で${f(Math.min(...lwQ))}から${f(Math.max(...lwQ))}のあいだ。`+(L[1]-A.rs>.15?"市場の見る中立は、公式の推計より高い場所に移っている。長期金利の上昇を景気のせいだけにはできない。":L[1]-A.rs<-.15?"市場の見る中立は、公式の推計より低い。長期金利は景気の減速を先に映している。":"市場と公式の推計は、ほぼ同じ高さにある。")].filter(Boolean);
   return panel("自然利子率Now",`${mdj(Nw0.date)}`,`<div class="hd">${f(L[1])}%<small>市場の自然利子率と LW の軸</small></div>${sp}${C}
-    ${lg([["Now（LW ＋ 5年先5年実質の四半期平均からの差）","#2ee6ff"],[`LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"],["LW の最新値（軸として固定）","#fff",1],["FOMC longer run − 2","#ffb547",1]])}
+    ${lg([["Now（LW ＋ 5年先5年実質の四半期平均からの差）","#2ee6ff"],["過去の Now（バックテスト、その時点の LW から計算）","#2ee6ff",1],[`LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"],["LW の最新値（軸として固定）","#fff",1],["FOMC longer run − 2","#ffb547",1]])}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("自然利子率とは",[["景気を冷やしも温めもしない実質金利","r* は観測できない。モデルで推計するしかなく、LW と HLW で0.6も違う。本書は LW に固定する。"],["なぜ一期遅れるか","GDP が四半期ごとに出て、改定されるから。2026年第2四半期の推計が8月に出る。危機では土台も動くが、確認が遅れる。だから軸は動かさない。"],["市場版の読み方","LW は四半期ごとの推計で、出るのは一期遅れる。そのあいだに市場の実質金利が動けば、市場が見る自然利子率も動いている。Now は、LW が推計した四半期の5年先5年実質金利（10年の実質金利の2倍から5年の実質金利を引いたもの）の3か月平均を起点に、いまとの差分を LW に足す。"]])}`);
 }
