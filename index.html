@@ -409,7 +409,7 @@ function gravityPanel(){
   const L=G[G.length-1];
   const sp=spSeg("gv",[["5","5年"],["99","2014年〜"]],"99");
   const pts=cutY(G.map(r=>[dms(r[0]),r[5]]),+SPK.gv);
-  const C=chart([{p:pts,bar:true,c:v=>v>=1?"#2ee6ff":v<=-1?"#ff4d5e":v>=0?"#2ee6ff80":"#77777f",op:.85,bw:.8}],{H:190,zero:true,ref:[{v:1,c:"#2ee6ff",l:"+1σ"},{v:-1,c:"#ff4d5e",l:"−1σ"}]});
+  const C=chart([{p:pts,bar:true,c:v=>v>=1?"#2ee6ff":v<=-1?"#ff4d5e":v>=0?"#2ee6ff80":"#77777f",op:.85,bw:.8}],{H:190,zero:true,ref:[{v:1,c:"#4CAF50",l:"+1σ"},{v:-1,c:"#4CAF50",l:"−1σ"}]});
   const B=[["+1σ超",r=>r[5]>1],["0〜+1σ",r=>r[5]>0&&r[5]<=1],["−1〜0σ",r=>r[5]<=0&&r[5]>=-1],["−1σ未満",r=>r[5]<-1]];
   const W12=G.filter(r=>r[7]!=null);
   const bucket=B.map(([n,fn])=>{const R=W12.filter(fn),v=R.map(r=>r[7]);return{n,k:R.length,avg:v.length?mean(v):null,win:v.length?v.filter(x=>x>0).length/v.length*100:null,min:v.length?Math.min(...v):null,now:fn(L)}});
@@ -600,13 +600,15 @@ function dxyPanel(mo,gold){
   const flags=[];[[1,23],[2,11],[3,11]].forEach(([k,gap])=>{let lastF=-99;R.forEach((r,i)=>{if(r[3]<r[4]-k*r[5]){if(i-lastF>gap)flags.push([r[0],k]);lastF=i}})});
   const sp=spSeg("dz",[["10","10年"],["99","2001年〜"]],"10"),y=+SPK.dz;
   const band=k=>cutY(R.map(r=>[dms(r[0]),r[2]*(1+r[4]+k*r[5])]),y);
-  const S=[{p:band(2),c:"#2ee6ff",w:1,dash:"2 3",op:.6,end:false},{p:band(1),c:"#2ee6ff",w:1,dash:"4 3",op:.8,end:false},{p:band(0),c:"#ffffff",w:1.2,dash:"5 3",op:.8,end:false},
-    {p:band(-1),c:"#ff4d5e",w:1,dash:"4 3",op:.8,end:false},{p:band(-2),c:"#ff4d5e",w:1,dash:"2 3",op:.6,end:false},
-    {p:cutY(R.map(r=>[dms(r[0]),r[2]]),y),c:"#777",w:1,end:false},{p:cutY(R.map(r=>[dms(r[0]),r[1]]),y),c:"#ffb547",w:1.8,dec:2}];
+  // σ colours as in the other apps (MRI, the paper, VIX): ±1σ green, ±2σ orange, ±3σ red
+  const SC={1:"#4CAF50",2:"#FF9800",3:"#FF3B5C"};
+  const S=[{p:band(2),c:SC[2],w:1,dash:"2 3",op:.85,end:false},{p:band(1),c:SC[1],w:1,dash:"4 3",op:.9,end:false},{p:band(0),c:"#ffffff",w:1.2,dash:"5 3",op:.8,end:false},
+    {p:band(-1),c:SC[1],w:1,dash:"4 3",op:.9,end:false},{p:band(-2),c:SC[2],w:1,dash:"2 3",op:.85,end:false},
+    {p:cutY(R.map(r=>[dms(r[0]),r[2]]),y),c:"#777",w:1,end:false},{p:cutY(R.map(r=>[dms(r[0]),r[1]]),y),c:"#2ee6ff",w:1.8,dec:2}];
   const t0=cutY(R.map(r=>[dms(r[0]),r[1]]),y)[0][0];
-  const C=chart(S,{H:220,vlines:flags.filter(f=>dms(f[0])>=t0).map(([mm,k])=>[dms(mm),"−"+k+"σ","#ff4d5e"])});
+  const C=chart(S,{H:220,vlines:flags.filter(f=>dms(f[0])>=t0).map(([mm,k])=>[dms(mm),"−"+k+"σ",SC[k]])});
   const C2=chart([{p:cutY(R.map(r=>[dms(r[0]),r[7]]),y),bar:true,c:"#ffd27a",op:.8},{p:cutY(R.map(r=>[dms(r[0]),r[8]]),y),c:"#2ee6ff",w:1.4,dec:2}],{H:120,zero:true});
-  const rows=[3,2,1,0,-1,-2,-3].map(k=>`<tr class="${Math.abs(z-k)<.5?"now":""}"><td>${k?(k>0?"+":"−")+Math.abs(k)+"σ":"中心"}</td><td>${f(lvl(k),2)}</td><td>${sg((x/lvl(k)-1)*100,1)}%</td></tr>`).join("");
+  const rows=[3,2,1,0,-1,-2,-3].map(k=>`<tr class="${Math.abs(z-k)<.5?"now":""}"><td${k?` style="color:${SC[Math.abs(k)]}"`:""}>${k?(k>0?"+":"−")+Math.abs(k)+"σ":"中心"}</td><td>${f(lvl(k),2)}</td><td>${sg((x/lvl(k)-1)*100,1)}%</td></tr>`).join("");
   const lastFl=flags.slice().sort((a,b)=>a[0]<b[0]?1:-1)[0];
   const P=[`ドルは${f(x,2)}で、10年のトレンド${f(tr,2)}の${sg(dev*100,1)}%上にいる。ただ、この10年でドルがトレンドより上にいた平均（中心）は${sg(ave*100,1)}%で、そこから見れば${sg(z)}σ、下から${f(pct*100,0)}%の位置だ。`+
       (dev>ave?`中心より上、ドル高の側にいる。金の配分指数は${f(al,2)}。ドル高は金安で、厚く買う局面になる。`:`中心より下、ドル安の側にいる。金の配分指数は0で、ドルの振り子から見て金を厚く買う局面ではない。`),
@@ -615,7 +617,7 @@ function dxyPanel(mo,gold){
   return panel("第二層　ドルの振り子",`${ymj(m)}　月末`,`<div class="hd">ドル ${sg(z)}σ　下から${f(pct*100,0)}%<small>ドルインデックスの10年トレンドからの乖離を、その10年の中心で補正</small></div>
     <div class="tiles"><div class="tile"><span>ドルインデックス</span><b>${f(x,2)}</b></div><div class="tile"><span>10年トレンド</span><b>${f(tr,2)}</b></div><div class="tile"><span>中心（σ 0）</span><b>${f(lvl(0),2)}</b></div>
     <div class="tile"><span>乖離 / 中心</span><b>${sg(dev*100,1)}<small>% / ${sg(ave*100,1)}%</small></b></div><div class="tile"><span>金の配分指数</span><b>${f(al,2)}</b><small>20年平均 ${f(a20,2)}</small></div><div class="tile"><span>ドルと金の相関</span><b>${c6!=null?sg(c6):"–"}</b><small>6か月</small></div></div>
-    ${sp}${C}${lg([["ドルインデックス","#ffb547"],["中心","#fff",1],["+1σ・+2σ","#2ee6ff",1],["−1σ・−2σ","#ff4d5e",1],["10年トレンド","#777"]])}
+    ${sp}${C}${lg([["ドルインデックス","#2ee6ff"],["中心","#fff",1],["±1σ",SC[1],1],["±2σ",SC[2],1],["10年トレンド","#777"]])}
     <div class="lbl" style="margin-top:8px">金の配分指数（ドル高ほど厚く）と20年平均</div>${C2}
     <table class="st"><tr><th>位置</th><th>ドル指数</th><th>いまとの差</th></tr>${rows}</table>
     <div class="rd">${P.filter(Boolean).map(t=>`<p>${t}</p>`).join("")}</div>
