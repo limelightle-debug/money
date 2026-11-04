@@ -198,11 +198,11 @@ async function load(){
 }
 // the axis of 『金利の重力』 第八章: LW r* (the latest quarter) + the 2% target = the nominal neutral rate. The 10-year
 // carries a 1% risk premium on top, half on the real rate and half on expected inflation: real 10Y axis r* + 0.5,
-// breakeven axis 2% + 0.5, nominal 10Y axis r* + 2 + 1. The 30-year: +1.5 on the nominal neutral rate
-const RP_R=.5,RP_B=.5;
+// breakeven axis 2% + 0.5, nominal 10Y axis r* + 2 + 1. The 30-year: 1.5, 0.75 on each (real r* + 0.75, breakeven 2.75)
+const RP_R=.5,RP_B=.5,RP30=.75;
 function axis(){
   const H=J.rs&&J.rs.hist||[];const L=H[H.length-1];if(!L)return null;
-  const rs=L[2],N=rs+2;return{q:L[0],rs,hlw:L[1],N,n10:N+RP_R+RP_B,n30:N+1.5,r10:rs+RP_R,be:2+RP_B}}
+  const rs=L[2],N=rs+2;return{q:L[0],rs,hlw:L[1],N,n10:N+RP_R+RP_B,n30:N+2*RP30,r10:rs+RP_R,be:2+RP_B,r30:rs+RP30,be30:2+RP30}}
 function now(){
   const c=J.cv,fw=J.fw;if(!c)return null;
   const y=c.now.y,inf=c.infl||{};const pol=fw&&fw.target?(fw.target[0]+fw.target[1])/2:null;
@@ -222,7 +222,7 @@ function rAxisPanel(A,Nw){
   const T=`<table class="ax"><tr><th></th><th>実勢</th><th>軸</th><th>乖離</th></tr>
     ${row("政策金利（誘導目標の中央）",Nw.pol,A.N,gp)}
     ${row("10年債",Nw.n10,A.n10,g10)}${row("実質金利",r10,A.r10,gr,1)}${row("期待インフレ",be,A.be,gb,1)}
-    ${row("30年債",Nw.n30,A.n30,g30)}
+    ${row("30年債",Nw.n30,A.n30,g30)}${r30!=null?row("実質金利",r30,A.r30,r30-A.r30,1)+row("期待インフレ",Nw.n30-r30,A.be30,Nw.n30-r30-A.be30,1):""}
     ${dotY?row(`ドット ${yr}年末`,dotY[1],A.N,dotY[1]-A.N):""}${dotN?row(`ドット ${yr+1}年末`,dotN[1],A.N,dotN[1]-A.N):""}
     ${lr?row("ドット longer run",lr[1],A.N,lr[1]-A.N):""}
     ${fl?row(`市場の織り込み（${mdj(fl.date)}会合後）`,fl.after,A.N,fl.after-A.N):""}</table>`;
@@ -231,7 +231,7 @@ function rAxisPanel(A,Nw){
   P.push(gp>.1?`政策金利は軸の上${f(gp,3)}。中立を上に抜け、引き締めの側に立っている。`:gp<-.1?`政策金利は軸の下${f(-gp,3)}。まだ緩和の側にいる。`:`政策金利は軸とほぼ重なる。アクセルもブレーキも踏んでいない位置だ。`);
   const byB=Math.abs(gb)>Math.abs(gr);
   P.push(`10年の乖離${sg(g10)}は、実質${sg(gr)}と期待インフレ${sg(gb)}に分かれる。`+(byB?(gb>0?"長期金利を軸から押し上げているのは実質の重力ではなく、物価への疑いだ。株の分母はまだ重くなっていない。":"期待インフレが軸を下回り、長期金利を軸の下へ引いている。物価への安心が金利を軽くしている。"):(gr>0?"軸から離しているのは実質金利、つまり重力そのものだ。株の分母が重くなっている。":"実質金利が軸を下回り、重力は弱い。株にとっては追い風の側だ。")));
-  P.push(`30年の乖離は${sg(g30)}。`+(Math.abs(g30)<Math.abs(g10)?"10年より軸に近い。長い側ほど軸に寄る形は、市場が遠い先には中立へ戻ると見ていることを示す。":"10年より軸から遠い。遠い先の不確かさに、市場が上乗せを求めている。"));
+  P.push(`30年の乖離は${sg(g30)}`+(r30!=null?`で、実質${sg(r30-A.r30)}と期待インフレ${sg(Nw.n30-r30-A.be30)}に分かれる。`:"。")+(Math.abs(g30)<Math.abs(g10)?"10年より軸に近い。長い側ほど軸に寄る形は、市場が遠い先には中立へ戻ると見ていることを示す。":"10年より軸から遠い。遠い先の不確かさに、市場が上乗せを求めている。"));
   if(lr)P.push(`FOMC の longer run ${f(lr[1],1)}は軸より${f(A.N-lr[1])}低い。委員の想定する中立は LW より低いのに、置いている金利は軸の上にある。言葉と行動が違う。`);
   P.push(`市場の自然利子率は${f(rNow)}%で、LW の${f(A.rs)}%との差は${sg(d)}。`+(Math.abs(d)<.15?"市場は軸を認めている。":d>0?"市場は軸が上に逃げたと見ている。成長か、AI が押し上げる資本の収益率か。確かめる術はまだない。":"市場は軸より低い中立を見ている。景気の減速か、利下げの先取りだ。"));
   const hd=gp>.1&&g10>0?["中立の上で、引き締めが続く","政策も長期も軸の上にある"]:gp>.1?["政策は中立の上、長期は軸の下","市場は先の利下げか減速を見る"]:gp<-.1?["政策はまだ緩和の側","軸までの距離が利上げの余地"]:["政策は軸の上に重なる","振り子は真ん中にある"];
@@ -239,29 +239,29 @@ function rAxisPanel(A,Nw){
     <div class="bigrow"><div><div class="lbl">自然利子率Now</div><div class="big">${f(rNow)}<small>%</small></div></div>
     <div class="side">LW の自然利子率 <b class="n">${f(A.rs)}%</b><br>${qj(A.q)}（一期遅れ）<br>軸とのずれ <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を足す。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
+    ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
       ["自然利子率Now","LW は四半期ごとで、一期遅れて出る。Now は、10年の実質金利から実質金利のリスクプレミアム0.5を引いた、市場がいま織り込む自然利子率だ。毎日動く。LW との差が、軸が逃げているかどうかの手がかりになる。軸そのものは動かさない。"],
       ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`,"hero");
 }
 function rstarPanel(A){
   const all=J.mo&&J.mo.real&&J.mo.real.all||[];if(!all.length)return"";
-  const s10=all.filter(r=>r[5]!=null).map(r=>[dms(r[0]),r[5]-RP_R]);
+  const s10=all.filter(r=>r[5]!=null).map(r=>[dms(r[0]),r[5]-RP_R]),s30=all.filter(r=>r[6]!=null).map(r=>[dms(r[0]),r[6]-RP30]);
   const LW=(J.rs.hist||[]).filter(r=>r[0]>="2003").map(r=>[dms(r[0])+60*864e5,r[2]]);
   const F=J.mo.fomc&&J.mo.fomc.lr||[],lr=F.map(r=>[dms(r[0]),r[1]-2]);
   const sp=spSeg("rs",[["1","1年"],["5","5年"],["99","2003年〜"]],"5"),y=+SPK.rs;
   const cut=P=>cutY(P,y),t0=cut(s10)[0][0];
   const lw=LW.filter(q=>q[0]>=t0-120*864e5);
-  const C=chart([{p:cut(s10).map(q=>q),c:"#2ee6ff",w:1.5,u:"%"},{p:lw.length?lw:LW.slice(-1),c:"#ffffff",w:2,step:true,u:"%"},{p:lr.filter(q=>q[0]>=t0-400*864e5),c:"#ffb547",w:1.4,step:true,dash:"4 3",u:"%"}],{H:210,t0});
+  const C=chart([{p:cut(s10).map(q=>q),c:"#2ee6ff",w:1.5,u:"%"},{p:cut(s30),c:"#b59cff",w:1.2,u:"%"},{p:lw.length?lw:LW.slice(-1),c:"#ffffff",w:2,step:true,u:"%"},{p:lr.filter(q=>q[0]>=t0-400*864e5),c:"#ffb547",w:1.4,step:true,dash:"4 3",u:"%"}],{H:210,t0});
   const L=s10[s10.length-1],a3=s10.filter(q=>q[0]<=L[0]-91*864e5).pop(),a12=s10.filter(q=>q[0]<=L[0]-365*864e5).pop();
   const hi1=Math.max(...s10.filter(q=>q[0]>=L[0]-365*864e5).map(q=>q[1])),lo1=Math.min(...s10.filter(q=>q[0]>=L[0]-365*864e5).map(q=>q[1]));
   const lwQ=(J.rs.hist||[]).slice(-5).map(r=>r[2]);
   const P=[`自然利子率Now は3か月で${sg(L[1]-a3[1])}、1年で${sg(L[1]-a12[1])}動いた。この1年の幅は${f(lo1)}から${f(hi1)}。`,
     `LW の推計は直近4四半期で${f(Math.min(...lwQ))}から${f(Math.max(...lwQ))}のあいだ。`+(L[1]-A.rs>.15?"市場の見る中立は、公式の推計より高い場所に移っている。長期金利の上昇を景気のせいだけにはできない。":L[1]-A.rs<-.15?"市場の見る中立は、公式の推計より低い。長期金利は景気の減速を先に映している。":"市場と公式の推計は、ほぼ同じ高さにある。")];
   return panel("自然利子率Now",`${mdj(Nw0.date)}`,`<div class="hd">${f(L[1])}%<small>市場の自然利子率と LW の軸</small></div>${sp}${C}
-    ${lg([["Now（10年実質 − 0.5）","#2ee6ff"],["LW（四半期）","#fff"],["FOMC longer run − 2","#ffb547",1]])}
+    ${lg([["Now（10年実質 − 0.5）","#2ee6ff"],["30年実質 − 0.75","#b59cff"],["LW（四半期）","#fff"],["FOMC longer run − 2","#ffb547",1]])}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("自然利子率とは",[["景気を冷やしも温めもしない実質金利","r* は観測できない。モデルで推計するしかなく、LW と HLW で0.6も違う。本書は LW に固定する。"],["なぜ一期遅れるか","GDP が四半期ごとに出て、改定されるから。2026年第2四半期の推計が8月に出る。危機では土台も動くが、確認が遅れる。だから軸は動かさない。"],["市場版の読み方","10年の実質金利は、今後10年の短期の実質金利の平均にリスクプレミアムが乗ったもの。10年のリスクプレミアム1%のうち、実質金利の分は0.5%。これを引けば、市場が想定する平均の実質金利、つまり市場の r* になる。LW から離れ続ければ、軸が逃げている可能性がある。"]])}`);
+    ${xpl("自然利子率とは",[["景気を冷やしも温めもしない実質金利","r* は観測できない。モデルで推計するしかなく、LW と HLW で0.6も違う。本書は LW に固定する。"],["なぜ一期遅れるか","GDP が四半期ごとに出て、改定されるから。2026年第2四半期の推計が8月に出る。危機では土台も動くが、確認が遅れる。だから軸は動かさない。"],["市場版の読み方","10年の実質金利は、今後10年の短期の実質金利の平均にリスクプレミアムが乗ったもの。10年のリスクプレミアム1%のうち、実質金利の分は0.5%。これを引けば、市場が想定する平均の実質金利、つまり市場の r* になる。30年は実質の分0.75を引く。2本が揃って LW から離れれば、軸が逃げている可能性がある。"]])}`);
 }
 function policyPanel(A){
   const H=(J.rs.hist||[]).filter(r=>r[0]>="1990"&&r[3]!=null);if(!H.length)return"";
