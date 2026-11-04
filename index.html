@@ -259,7 +259,7 @@ function rAxisPanel(A,Nw){
   const hd=gpm==null?["軸と実勢",""]:gpm>.1?["市場の中立で見ても、政策は引き締めの側",`市場の自然利子率は公式より${sg(d)}`]:["市場の中立から見ると、引き締めは効いていない",`市場の自然利子率は公式より${sg(d)}`];
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd[0]}<small>${hd[1]}</small></div>
     <div class="bigrow"><div><div class="lbl">市場の自然利子率</div><div class="big">${f(rNow)}<small>%</small></div></div>
-    <div class="side">公式 LW <b class="n">${f(A.rs)}%</b>（${qj(A.q).replace(/^\d+年/,"")}、一期遅れ）${lnp?`<br>GDP からの見込み <b class="n">${f(gNow)}%</b>（${qj(lnp[0]).replace(/^\d+年/,"")}）`:""}<br>公式との差 <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
+    <div class="side">公式 LW <b class="n">${f(A.rs)}%</b>（${qj(A.q).replace(/^\d+年/,"")}）${lnp?`<br>GDP からの見込み <b class="n">${f(gNow)}%</b>（${qj(lnp[0]).replace(/^\d+年/,"")}）`:""}<br>公式との差 <b class="n ${cls(d)}">${sg(d)}</b></div></div>${T}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
