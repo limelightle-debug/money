@@ -267,7 +267,7 @@ function wfSvg(ttl,rate,axr,pg,pi,rp,lo,hi){
 // the rate built up as in 図2-11: r*Now → the 2% target → the inflation premium → the growth premium → the rate; the axis as the dashed outline
 const WFC=["#e8e8ee","#6b6b78","#2ee6ff","#ffe066"];
 function wfBuild(ttl,act,ax){
-  const Wd=W(),H=176,MT=20,MB=36,ML=6,MR=6,PH=H-MT-MB,nm=["自然利子率Now","インフレ目標","インフレの上乗せ","成長の上乗せ","合計"];
+  const Wd=W(),H=190,MT=20,MB=50,ML=6,MR=6,PH=H-MT-MB,nm=["自然利子率Now","インフレ目標","インフレ","成長","合計"];
   const cum=v=>{const r=[];let c=0;v.forEach(d=>{r.push([c,c+d]);c+=d});r.push([0,c]);return r};
   const A=cum(act),X=cum(ax),all=A.concat(X).flat(),hi=Math.ceil(Math.max(...all)+.4),lo=Math.min(0,Math.floor(Math.min(...all)));
   const y=v=>MT+(hi-v)/(hi-lo)*PH,cw=(Wd-ML-MR)/5,bw=Math.min(46,cw*.6);
@@ -282,6 +282,7 @@ function wfBuild(ttl,act,ax){
     const axd=i===4?xb:xb-xa;
     o+=`<text x="${cx}" y="${H-MB+14}" text-anchor="middle" style="fill:#c8c8d0;font-size:10px">${nm[i]}</text>`;
     if(i>1)o+=`<text x="${cx}" y="${H-MB+27}" text-anchor="middle" style="fill:#8a8a96;font-size:10px">${i===4?"軸":"標準"} ${i===4?f(axd):(axd<0?"−":"+")+f(Math.abs(axd))}</text>`});
+  {const x1=ML+cw*2+6,x2=ML+cw*4-6;o+=`<path d="M${x1},${H-15}V${H-11}H${x2}V${H-15}" fill="none" stroke="#8a8a96" stroke-width=".8"/><text x="${(x1+x2)/2}" y="${H-1}" text-anchor="middle" style="fill:#c8c8d0;font-size:10px">市場期間プレミアム</text>`}
   if(lo<0)o+=`<line x1="${ML}" x2="${Wd-MR}" y1="${y(0)}" y2="${y(0)}" stroke="#fff" stroke-opacity=".25"/>`;
   return`<div class="rchart"><svg viewBox="0 0 ${Wd} ${H}" height="${H}" role="img">${o}</svg></div>`}
 function rAxisPanel(A,Nw){
@@ -294,16 +295,16 @@ function rAxisPanel(A,Nw){
   const row=(n,act,ax,gap,sub)=>`<tr${sub?` class="subr"`:""}><td>${n}</td><td>${f(act,act!=null&&Math.abs(act*1000%10)>1e-6&&n.includes("政策")?3:2)}</td><td>${f(ax,2)}</td><td class="${cls(gap)}">${sg(gap)}</td></tr>`;
   const T=`<table class="ax"><tr><th></th><th>実勢</th><th>軸</th><th>乖離</th></tr>
     ${row("政策金利（誘導目標の中央）",Nw.pol,A.N,gp)}
-    ${row("10年債",Nw.n10,A.n10,g10)}${row("実質金利",r10,A.r10,gr,1)}${row("期待インフレ",be,A.be,gb,1)}${row("成長の期間プレミアム",r10-A.rs,RP_R,r10-A.rs-RP_R,1)}${row("インフレの期間プレミアム",be-2,RP_B,be-2-RP_B,1)}
-    ${row("30年債",Nw.n30,A.n30,g30)}${r30!=null?row("実質金利",r30,A.r30,r30-A.r30,1)+row("期待インフレ",Nw.n30-r30,A.be30,Nw.n30-r30-A.be30,1)+row("成長の期間プレミアム",r30-A.rs,RP30,r30-A.rs-RP30,1)+row("インフレの期間プレミアム",Nw.n30-r30-2,RP30,Nw.n30-r30-2-RP30,1):""}
+    ${row("10年債",Nw.n10,A.n10,g10)}${row("実質金利",r10,A.r10,gr,1)}${row("期待インフレ",be,A.be,gb,1)}${row("成長の市場期間プレミアム",r10-A.rs,RP_R,r10-A.rs-RP_R,1)}${row("インフレの市場期間プレミアム",be-2,RP_B,be-2-RP_B,1)}
+    ${row("30年債",Nw.n30,A.n30,g30)}${r30!=null?row("実質金利",r30,A.r30,r30-A.r30,1)+row("期待インフレ",Nw.n30-r30,A.be30,Nw.n30-r30-A.be30,1)+row("成長の市場期間プレミアム",r30-A.rs,RP30,r30-A.rs-RP30,1)+row("インフレの市場期間プレミアム",Nw.n30-r30-2,RP30,Nw.n30-r30-2-RP30,1):""}
     ${dotY?row(`ドット ${yr}年末`,dotY[1],A.N,dotY[1]-A.N):""}${dotN?row(`ドット ${yr+1}年末`,dotN[1],A.N,dotN[1]-A.N):""}
     ${lr?row("ドット longer run",lr[1],A.N,lr[1]-A.N):""}
     ${fl?row(`市場の織り込み（${mdj(fl.date)}会合後）`,fl.after,A.N,fl.after-A.N):""}</table>`;
   const pg10=r10-A.rs,pi10=be-2,pg30=r30!=null?r30-A.rs:null,pi30=r30!=null?Nw.n30-r30-2:null;
   const ds=[0,pi10-RP_B,pg10-RP_R+pi10-RP_B].concat(r30!=null?[pi30-RP30,pg30-RP30+pi30-RP30]:[]),wlo=Math.min(-.25,Math.min(...ds)-.22),whi=Math.max(.25,Math.max(...ds)+.18);
-  const SBb=`<div class="lbl" style="margin-top:10px">軸と実勢の積み上げ<span style="font-weight:400;color:var(--muted)">（点線が軸。期間プレミアムの標準は10年0.50ずつ、30年0.75ずつ）</span></div>`
+  const SBb=`<div class="lbl" style="margin-top:10px">軸と実勢の積み上げ<span style="font-weight:400;color:var(--muted)">（点線が軸。市場期間プレミアムはマイナスにもなる。標準期間プレミアムは10年0.50ずつ、30年0.75ずつ）</span></div>`
     +wfBuild("10年債",[A.rs,2,pi10,pg10],[A.rs,2,RP_B,RP_R])+(r30!=null?wfBuild("30年債",[A.rs,2,pi30,pg30],[A.rs,2,RP30,RP30]):"");
-  const SBx=`<div class="lbl" style="margin-top:12px">軸からの乖離はどこから来ているか<span style="font-weight:400;color:var(--muted)">（期間プレミアム − 標準期間プレミアム）</span></div>`
+  const SBx=`<div class="lbl" style="margin-top:12px">軸からの乖離はどこから来ているか<span style="font-weight:400;color:var(--muted)">（市場期間プレミアム − 標準期間プレミアム）</span></div>`
     +wfSvg("10年債",Nw.n10,A.n10,pg10,pi10,RP_R,wlo,whi)+(r30!=null?wfSvg("30年債",Nw.n30,A.n30,pg30,pi30,RP30,wlo,whi):"");
   const qs=q=>qj(q).replace(/^\d+年/,"");
   const P=[];
@@ -312,8 +313,8 @@ function rAxisPanel(A,Nw){
     +(lr?`委員のドット（longer run ${f(lr[1],1)}）は中立の${sg(lr[1]-A.N)}。`:""));
   {const g30b=r30!=null?Nw.n30-r30-A.be30:null;
    const dg=pg10-RP_R,di=pi10-RP_B;
-   P.push(`10年債は軸の${sg(g10)}。成長の不確実性に対する期間プレミアムは${f(pg10)}で軸の0.50から${sg(dg)}、インフレの不確実性に対する期間プレミアムは${f(pi10)}で${sg(di)}。市場は${SCN(dg,di)}。`
-     +(r30!=null?`30年債は軸の${sg(g30)}で、成長${sg(pg30-RP30)}、インフレ${sg(pi30-RP30)}（軸は0.75ずつ）。`:""))}
+   P.push(`10年債は軸の${sg(g10)}。成長の不確実性に対する市場期間プレミアムは${f(pg10)}で標準の0.50から${sg(dg)}、インフレの不確実性に対する市場期間プレミアムは${f(pi10)}で${sg(di)}。市場は${SCN(dg,di)}。`
+     +(r30!=null?`30年債は軸の${sg(g30)}で、成長${sg(pg30-RP30)}、インフレ${sg(pi30-RP30)}（標準は0.75ずつ）。`:""))}
   const hd=gp>.1?"政策は中立の上、引き締めの側":gp<-.1?"政策は中立の下、緩和の側":"政策はほぼ中立";
   const LN=W&&W.LN;
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd}<small>政策金利 − 名目中立 = ${sg(gp)}</small></div>
@@ -434,7 +435,7 @@ function curvePanel(){
   const c=J.cv;if(!c)return"";
   const svg=`<div class="rchart">${curveSvg(c,W())}</div>`;
   const n=c.now.y,m=c.m3.y,d2=n["2Y"]-m["2Y"],d10=n["10Y"]-m["10Y"];
-  const kind=d2>0&&d10>0?(d10>d2?["ベア・スティープ","長期が先に上がった。動かしているのは市場の側だ（期待インフレか、長い先への上乗せ）。"]:["ベア・フラット","短期が先に上がった。動かしているのは中央銀行の側だ。"]):
+  const kind=d2>0&&d10>0?(d10>d2?["ベア・スティープ","長期が先に上がった。動かしているのは市場の側だ（期待インフレか、市場期間プレミアム）。"]:["ベア・フラット","短期が先に上がった。動かしているのは中央銀行の側だ。"]):
     d2<0&&d10<0?(d2<d10?["ブル・スティープ","短期が先に下がった。市場は利下げを先取りしている。"]:["ブル・フラット","長期が先に下がった。市場は景気の減速を見ている。"]):
     d10>d2?["スティープ化","長短の差が広がった。"]:["フラット化","長短の差が縮んだ。"];
   const S=c.spread||[],s=S[S.length-1];
