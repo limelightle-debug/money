@@ -283,13 +283,18 @@ function wfBuild(ttl,act,ax){
   const A=cum(act),X=cum(ax),all=A.concat(X).flat(),hi=Math.ceil(Math.max(...all)+.4),lo=Math.min(0,Math.floor(Math.min(...all)));
   const y=v=>MT+(hi-v)/(hi-lo)*PH,cw=(Wd-ML-MR)/5,bw=Math.min(46,cw*.6);
   let o=`<text x="${ML}" y="12" style="fill:#c8c8d0;font-size:12px;font-weight:700">${ttl}</text>`;
-  A.forEach(([a,b],i)=>{const cx=ML+cw*(i+.5),c=i<4?WFC[i]:"#f2f2f7",d=b-a,[xa,xb]=X[i];
-    const top=y(Math.max(a,b)),h=Math.max(1,Math.abs(y(a)-y(b)));
-    o+=`<rect x="${cx-bw/2}" y="${top}" width="${bw}" height="${h}" fill="${c}" opacity="${i===4?.9:.92}"/>`;
-    o+=`<rect x="${cx-bw/2-3}" y="${y(Math.max(xa,xb))}" width="${bw+6}" height="${Math.max(1,Math.abs(y(xa)-y(xb)))}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-dasharray="3 2"/>`;
-    if(i<4){o+=`<line x1="${cx+bw/2}" x2="${cx+cw-bw/2}" y1="${y(b)}" y2="${y(b)}" stroke="#fff" stroke-opacity=".3"/>`}
+  // the market's bar (solid) and, beside it from the same base, the standard (dashed frame): the premium columns and
+  // the total read as two bars side by side, so the market's premium is never read off the standard's frame
+  const pair=i=>i>1,bm=i=>pair(i)?Math.min(34,cw*.4):bw,bs=Math.min(22,cw*.26),GP=3;
+  A.forEach(([a,b],i)=>{const cx=ML+cw*(i+.5),c=i<4?WFC[i]:"#f2f2f7",d=b-a,[xa,xb]=X[i],w=bm(i);
+    const x0=pair(i)?cx-(w+GP+bs)/2:cx-w/2,mx=x0+w/2,top=y(Math.max(a,b)),h=Math.max(1,Math.abs(y(a)-y(b)));
+    o+=`<rect x="${x0}" y="${top}" width="${w}" height="${h}" fill="${c}" opacity="${i===4?.9:.92}"/>`;
+    let xr=x0+w;
+    if(pair(i)){const sd=i===4?xb:xb-xa,s0=i===4?0:a,s1=s0+sd,sx=x0+w+GP;
+      o+=`<rect x="${sx}" y="${y(Math.max(s0,s1))}" width="${bs}" height="${Math.max(1,Math.abs(y(s0)-y(s1)))}" fill="none" stroke="#fff" stroke-opacity=".75" stroke-dasharray="3 2"/>`;xr=sx+bs}
+    if(i<4){const nx=ML+cw*(i+1.5),nw=bm(i+1),nx0=pair(i+1)?nx-(nw+GP+bs)/2:nx-nw/2;o+=`<line x1="${xr}" x2="${nx0}" y1="${y(b)}" y2="${y(b)}" stroke="#fff" stroke-opacity=".3"/>`}
     const lab=i===0||i===4?f(b):(d<0?"−":"+")+f(Math.abs(d)),ly=d<0&&i>1&&i<4?y(Math.min(a,b))+12:top-4;
-    o+=`<text x="${cx}" y="${ly}" text-anchor="middle" style="fill:#fff;font-size:12px;font-weight:700">${lab}</text>`;
+    o+=`<text x="${mx}" y="${ly}" text-anchor="middle" style="fill:#fff;font-size:12px;font-weight:700">${lab}</text>`;
     const axd=i===4?xb:xb-xa;
     o+=`<text x="${cx}" y="${H-MB+14}" text-anchor="middle" style="fill:#c8c8d0;font-size:10px">${nm[i]}</text>`;
     if(i>1)o+=`<text x="${cx}" y="${H-MB+27}" text-anchor="middle" style="fill:#8a8a96;font-size:10px">${i===4?"軸":"標準"} ${i===4?f(axd):(axd<0?"−":"+")+f(Math.abs(axd))}</text>`});
@@ -313,7 +318,7 @@ function rAxisPanel(A,Nw){
     ${fl?row(`市場の織り込み（${mdj(fl.date)}会合後）`,fl.after,A.N,fl.after-A.N):""}</table>`;
   const pg10=r10-A.rs,pi10=be-2,pg30=r30!=null?r30-A.rs:null,pi30=r30!=null?Nw.n30-r30-2:null;
   const ds=[0,pi10-RP_B,pg10-RP_R+pi10-RP_B].concat(r30!=null?[pi30-RP30,pg30-RP30+pi30-RP30]:[]),wlo=Math.min(-.25,Math.min(...ds)-.22),whi=Math.max(.25,Math.max(...ds)+.18);
-  const SBb=`<div class="lbl" style="margin-top:10px">軸と実勢の積み上げ<span style="font-weight:400;color:var(--muted)">（点線が軸。市場期間プレミアムはマイナスにもなる。標準期間プレミアムは10年0.50ずつ、30年0.75ずつ）</span></div>`
+  const SBb=`<div class="lbl" style="margin-top:10px">軸と実勢の積み上げ<span style="font-weight:400;color:var(--muted)">（色の棒が市場、右の点線の枠が標準期間プレミアムと軸。市場期間プレミアムはマイナスにもなる。標準は10年0.50ずつ、30年0.75ずつ）</span></div>`
     +wfBuild("10年債",[A.rs,2,pi10,pg10],[A.rs,2,RP_B,RP_R])+(r30!=null?wfBuild("30年債",[A.rs,2,pi30,pg30],[A.rs,2,RP30,RP30]):"");
   const SBx=`<div class="lbl" style="margin-top:12px">軸からの乖離はどこから来ているか<span style="font-weight:400;color:var(--muted)">（市場期間プレミアム − 標準期間プレミアム）</span></div>`
     +wfSvg("10年債",Nw.n10,A.n10,pg10,pi10,RP_R,wlo,whi)+(r30!=null?wfSvg("30年債",Nw.n30,A.n30,pg30,pi30,RP30,wlo,whi):"");
