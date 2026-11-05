@@ -85,6 +85,18 @@ table.st tr.now td{color:var(--neon);font-weight:700}
 .path span{background:#121216;border:1px solid var(--line);border-radius:7px;padding:5px 7px;color:var(--ink2)}
 .path em{font-style:normal;color:var(--muted);font-family:var(--f-tick);font-size:11px}
 .path span.g{border-color:var(--neon);color:var(--ink)}
+.flow{margin:10px 0 4px;display:flex;flex-direction:column;gap:0}
+.flow .st{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;background:#121216;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.flow .st i{font-style:normal;display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#1d1d24;color:var(--ink2);font-family:var(--f-tick);font-size:11.5px;font-weight:700}
+.flow .st b{display:block;font-size:12px;color:var(--muted);font-weight:500}.flow .st span{display:block;font-size:13.5px;color:var(--ink);line-height:1.55}
+.flow .st.ok{border-color:#4CAF5088}.flow .st.ng{border-color:#FF980088}.flow .ar{text-align:center;color:var(--muted);font-size:11px;line-height:16px}
+.flow .st.end{border-color:var(--neon);background:#0d1a1d}.flow .st.end span{font-weight:700;font-size:15px}
+.route{display:flex;flex-direction:column;gap:0;margin:8px 0 4px}
+.route .bx{display:flex;justify-content:space-between;align-items:center;background:#121216;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--ink)}
+.route .bx small{color:var(--muted);font-size:11px}.route .bx.g{border-color:var(--neon)}
+.route .ln{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:8px;padding:3px 0 3px 18px;font-size:11.5px;color:var(--muted)}
+.route .ln em{font-style:normal;font-family:var(--f-tick);font-weight:700;color:var(--ink2);font-size:12.5px}.route .ln.ok span{color:#7fd88a}.route .ln.ng span{color:#FF9800}
+.strip{display:flex;height:14px;margin:4px 0 0;border-radius:3px;overflow:hidden}.strip i{flex:1}
 .frame{display:block;width:100%;border:0;background:transparent;margin-top:6px;min-height:200px}
 .empty{padding:40px 0;text-align:center;color:var(--muted)}
 .foot{margin-top:20px}
@@ -318,14 +330,14 @@ function rAxisPanel(A,Nw){
   const hd=gp>.1?"政策は中立の上、引き締めの側":gp<-.1?"政策は中立の下、緩和の側":"政策はほぼ中立";
   const LN=W&&W.LN;
   return panel("軸と実勢",`${mdj(Nw.date)}　同じ日の値`,`<div class="hd">${hd}<small>政策金利 − 名目中立 = ${sg(gp)}</small></div>
-    <div class="bigrow"><div><div class="lbl">自然利子率Now${W?`（${qs(A.nq)}）`:""}</div><div class="big">${f(A.rs)}<small>%</small></div></div>
-    <div class="side">公式 LW <b class="n">${f(A.lw)}%</b>（${qs(A.q)}）<br>名目中立 <b class="n">${f(A.N)}%</b>${W?`<br>実質GDP <b class="n">${f(W.g,1)}%</b>（${W.src==="GDPNow"?"GDPNow":"速報"}）`:""}</div></div>${T}${SBb}${SBx}
+    <div class="bigrow"><div><div class="lbl">名目中立</div><div class="big">${f(A.N)}<small>%</small></div></div>
+    <div class="side">自然利子率Now <b class="n">${f(A.rs)}%</b><br>＋ インフレ目標 <b class="n">2.00%</b><br>政策金利 <b class="n">${f(Nw.pol,3)}%</b></div></div>${T}${SBb}${SBx}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("軸の作り方",[["軸は LW モデルに置く","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["自然利子率Now","LW は四半期ごとで、一期遅れて出る（8月に4〜6月の値）。委員はその遅れた値から乖離を決めるので、指針もドットも遅れる。そこで、まだ出ていない四半期を LW と同じ材料、GDP と物価で先に動かす。"+(LN?`ΔLW = ${f(LN.coef[0],3)} + ${f(LN.coef[1],3)}×実質GDP（前期比年率） + ${f(LN.coef[2],3)}×Δコア PCE。実質GDP の伸びが約${f(-LN.coef[0]/LN.coef[1],1)}%を超える四半期に LW は上がる。`:"")+"GDPNow と同じく、公表済みの最後の LW から伸ばし、公式が出たら置き換わる。"],
       ["市場は軸にしない","市場の金利から作る自然利子率は、LW の動きをほとんど説明しない（次の LW との向きの一致は五分五分）。期間プレミアムをモデルで動かしても、外れの平均は0.7以上残る。分からない数字を別の推計で補正するだけになるので、軸にはしない。市場金利は経済成長の本質をとらえず、目先の材料で右往左往する（本書も市場から軸を作ることを退けている）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
-      ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`,"hero");
+      ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`);
 }
 function rstarPanel(A){
   // the official LW over its own quarters, and LW Now dotted: each past quarter as the model saw it then (the backtest),
@@ -347,10 +359,12 @@ function rstarPanel(A){
     ["自然利子率Now","まだ出ていない四半期を、LW と同じ GDP と物価で先に動かしたもの。GDPNow と同じく、公表済みの最後の LW から伸ばし、公式が出たら置き換わる。式は「軸と実勢」の「軸の作り方」にある。"],
     ["市場金利を使わない理由","市場金利は経済成長の本質をとらえず、目先の材料で右往左往する。市場の実質金利から作った自然利子率は、次の LW の動きの向きを五分五分でしか当てない。"],
     ["自然利子率とは","景気を冷やしも温めもしない実質金利。観測できず、モデルで推計するしかない。LW と HLW で0.6も違う。"]];
-  return panel("自然利子率",`${mdj(Nw0.date)}`,`<div class="hd">${f(A.rs)}%<small>自然利子率Now${W?`（${qs(A.nq)}）`:""}と公式の LW</small></div>${sp}${C}
+  return panel("自然利子率",`${mdj(Nw0.date)}`,`<div class="hd">すべての起点<small>景気を冷やしも温めもしない実質金利。軸も重力も、ここから測る</small></div>
+    <div class="bigrow"><div><div class="lbl">自然利子率Now${W?`（${qs(A.nq)}）`:""}</div><div class="big">${f(A.rs)}<small>%</small></div></div>
+    <div class="side">公式 LW <b class="n">${f(A.lw)}%</b>（${qs(A.q)}）${W?`<br>実質GDP <b class="n">${f(W.g,1)}%</b>（${W.src==="GDPNow"?"GDPNow":"速報"}）`:""}</div></div>${sp}${C}
     ${lg([[`公式 LW（${qs(A.q)}まで）`,"#fff"],["自然利子率Now（点線、未公表の四半期）",NC]])}
     <div class="rd">${P.filter(Boolean).map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("自然利子率の作り方",xs)}`);
+    ${xpl("自然利子率の作り方",xs)}`,"hero");
 }
 
 
@@ -468,40 +482,105 @@ function decompPanel(A){
     ${lg([["10年（名目）","#fff"],["実質金利（10年物価連動債）","#2ee6ff"],["期待インフレ（ブレークイーブン）","#ffb547"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("なぜ実質を見るか",[["分母と分子","通説は、金利が上がれば割引率が上がり株価が下がる、という。だが期待インフレで金利が上がれば、利益という分子も動く。株価が変わらないこともある。分母だけを動かすのは実質金利だ（第十章）。"],["2022年","名目の上昇のほぼ全部が実質だった（−1.0から+1.7）。S&P500 は−19%、ナスダックは−33%。キャッシュフローが先にある株ほど、重力が強く効いた。"]])}`);
 }
+// 第三部 金利の重力. The 重力 rows: [ym, real 10Y, 10-year MA, diff, sd, z, S&P500, S&P500 12 months later %]
+const GB5=[["+1σより上",z=>z>1],["0〜+1σ",z=>z>0&&z<=1],["−1σ〜0",z=>z>=-1&&z<=0],["−2σ〜−1σ",z=>z>=-2&&z<-1],["−2σより下",z=>z<-2]];
+const med=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length;return n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2};
+function gStats(){
+  const G=(J.mo&&J.mo.gravity||[]).filter(r=>r[5]!=null);if(!G.length)return null;
+  const L=G[G.length-1],W12=G.filter(r=>r[7]!=null);
+  const st=v=>v.length?{k:v.length,avg:mean(v),med:med(v),min:Math.min(...v),win:v.filter(x=>x>0).length/v.length*100}:{k:0};
+  const B=GB5.map(([n,fn])=>Object.assign({n,now:fn(L[5])},st(W12.filter(r=>fn(r[5])).map(r=>r[7]))));
+  return{G,L,W12,B,nb:B.find(b=>b.now),all:st(W12.map(r=>r[7])),hiT:st(W12.filter(r=>r[5]>=-1).map(r=>r[7])),loT:st(W12.filter(r=>r[5]<-1).map(r=>r[7])),
+    pos:st(W12.filter(r=>r[5]>0).map(r=>r[7])),neg:st(W12.filter(r=>r[5]<=0).map(r=>r[7])),r:corr(W12.map(r=>r[5]),W12.map(r=>r[7]))}}
+// 実質金利と株価 (第十章): CAPE's corrected gap against the real rate, and a 6-month rolling correlation (black: opposite,
+// gravity; white: together, the thermometer)
+function capePairs(){const C0=J.mo&&J.mo.cape||[],M=J.mo&&J.mo.real&&J.mo.real.monthly||[];const rm=new Map(M.map(r=>[r[0],r[2]]));
+  return C0.filter(r=>rm.has(r[0])&&rm.get(r[0])!=null&&r[0]>="2003").map(r=>[r[0],r[3],rm.get(r[0])])}
+function rollC(P,n=6){const out=[];for(let i=n-1;i<P.length;i++){const w=P.slice(i-n+1,i+1);out.push([P[i][0],corr(w.map(x=>x[1]),w.map(x=>x[2]))])}return out}
+// the route of 図5-9 and when it breaks: the curve inverted, expected inflation moving, the rate as the economy's result
+function routeCheck(Nw){
+  const all=J.mo&&J.mo.real&&J.mo.real.all||[],L=all[all.length-1],a12=all.filter(r=>r[0]<=String(+L[0]-10000)).pop();
+  const sl=Nw.y["10Y"]-Nw.y["3M"],dn=L[2]-a12[2],dr=L[5]-a12[5],db=dn-dr;
+  const RC=rollC(capePairs()),lc=RC[RC.length-1],l3=RC.length>=3?mean(RC.slice(-3).map(x=>x[1])):null,blk=RC.slice(-12).filter(x=>x[1]<0).length;
+  return[{a:"短期金利",b:"長期名目",c:.91,ok:sl>=0,why:"カーブが逆転するとき",now:`10年 − 3か月 ${sg(sl)}`+(sl>=0?"、逆転していない":"、逆転している")},
+    {a:"長期名目",b:"長期実質",c:.94,ok:Math.abs(db)<=Math.abs(dr),why:"期待インフレが動くとき",now:`1年で実質${sg(dr)}、期待インフレ${sg(db)}`+(Math.abs(db)<=Math.abs(dr)?"。動いたのは実質":"。動いたのは期待インフレ")},
+    {a:"長期実質",b:"株価の水準",c:-.68,ok:l3!=null&&l3<0,why:"金利が景気の結果であるとき",now:lc?`6か月相関の直近3か月平均 ${sg(l3)}（${ymj(lc[0])}まで）、直近12か月で逆向きが${blk}か月`:"–"}]}
+function gravHero(Nw){
+  const S=gStats();if(!S)return"";const {L,nb}=S,z=L[5],R=routeCheck(Nw),ok=R[2].ok;
+  const hd=z>1?"売る場面ではなく、買う場面":z>=-1?"向かい風でも、持ち続ける":"危ないのは、金利が低いとき";
+  const st=(c,n,b,t)=>`<div class="st ${c}"><i>${n}</i><div><b>${b}</b><span>${t}</span></div></div>`;
+  const F=`<div class="flow">${st(ok?"ok":"ng","1","金利は重力として働いているか",ok?"働いている。実質金利と株価が逆向きに動いている。金融政策が金利を動かしている局面":"いまは温度計。実質金利と株価が同じ向きに動き、金利が景気の結果になっている")}<div class="ar">↓</div>
+    ${st("","2","重力はどこにあるか",`${sg(z)}σ（${nb.n}）。実質金利 ${f(L[1])}% が10年平均 ${f(L[2])}% を${f(Math.abs(L[3]))}${L[3]>=0?"上回る":"下回る"}`)}<div class="ar">↓</div>
+    ${st("","3","その区分の12か月後",`${nb.k}か月のうち${f(nb.win,0)}%がプラス、平均${sg(nb.avg,1)}%、最小${sg(nb.min,1)}%`)}<div class="ar">↓</div>
+    ${st("end","→",z>1?"重力が高い":z>=-1?"重力は中くらい":"重力が低い",hd)}</div>`;
+  const P=[z>1?`重力が高いとき、株はトレンドより下に押さえられている。押さえられた先が割安だから、買い場になる。金利が下がれば重力が弱まり、上向きの力がかかる。いつ下がるかは分からないので、時期は当てない。`:z>=-1?`重力は落とす力ではなく、上昇を遅くする力だ。向かい風は、持ち続けない理由にならない。`:`金利が10年平均を大きく下回っているときに買うと、10回のうち4回は1年後に負けている。それでも平均はプラスだ。`,
+    `閾値は−1σにある。−1σ以上の${S.hiT.k}か月は勝率${f(S.hiT.win,0)}%、下回った${S.loT.k}か月は${f(S.loT.win,0)}%。`];
+  return panel("金利の重力",`${ymj(L[0])}　月次`,`<div class="hd">${hd}<small>重力 ${sg(z)}σ（${nb.n}）</small></div>${F}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
+    ${xpl("重力とは",[["作り方","10年の実質金利（物価連動債）から10年移動平均を引き、その差を差の標準偏差で割る。標準偏差の窓は最大10年、最低24か月。2003年に始まった実質金利から、10年と2年を捨てて2014年11月から計算できる（第十二章）。"],["働き方","落とすのではなく、遅くする。実質金利が上がった12か月も、株は上がってきた。ただ遅い（第十章）。"],["重力と温度計","金融政策が金利を動かしているとき、金利は重力として働く。景気が金利を動かしているとき、金利は温度計になる（第十一章）。"]])}`,"hero");
+}
+function routePanel(Nw){
+  const R=routeCheck(Nw),bx=(t,sm,g)=>`<div class="bx${g?" g":""}">${t}<small>${sm}</small></div>`;
+  const ln=r=>`<div class="ln ${r.ok?"ok":"ng"}"><em>${r.c>0?"+":"−"}${f(Math.abs(r.c))} ↓</em><span>${r.ok?"成立":"崩れる"}：${r.why}${r.ok?"ではない":""}。${r.now}</span></div>`;
+  const nOk=R.filter(r=>r.ok).length;
+  return panel("金利から株価への経路","図5-9",`<div class="hd">${nOk===3?"経路はつながっている":`${3-nOk}か所で崩れている`}<small>金融政策が金利を動かしているとき、金利は重力として働く</small></div>
+    <div class="route">${bx("政策金利","中央銀行が決める")}<div class="ln"><em>≒</em><span>翌日物から短期へ</span></div>${bx("短期金利","1年以下")}${ln(R[0])}${bx("長期名目金利","10年国債")}${ln(R[1])}${bx("長期実質金利","10年物価連動債")}${ln(R[2])}${bx("株価の水準","トレンドからの位置",1)}</div>
+    <p class="note">数字は本書の測定した相関（政策金利と10年0.91、10年名目と実質0.94、実質と株価の補正後乖離−0.68）。最後の一つだけが弱い。ここが重力である。</p>`);
+}
 function gravityPanel(){
-  const G=(J.mo&&J.mo.gravity||[]).filter(r=>r[5]!=null);if(!G.length)return"";
-  const L=G[G.length-1];
+  const S=gStats();if(!S)return"";const {G,L,B,nb}=S;
   const sp=spSeg("gv",[["5","5年"],["99","2014年〜"]],"99");
   const pts=cutY(G.map(r=>[dms(r[0]),r[5]]),+SPK.gv);
-  const C=chart([{p:pts,bar:true,c:v=>v>=1?"#2ee6ff":v<=-1?"#ff4d5e":v>=0?"#2ee6ff80":"#77777f",op:.85,bw:.8}],{H:190,zero:true,ref:[{v:1,c:"#4CAF50",l:"+1σ"},{v:-1,c:"#4CAF50",l:"−1σ"}]});
-  const B=[["+1σ超",r=>r[5]>1],["0〜+1σ",r=>r[5]>0&&r[5]<=1],["−1〜0σ",r=>r[5]<=0&&r[5]>=-1],["−1σ未満",r=>r[5]<-1]];
-  const W12=G.filter(r=>r[7]!=null);
-  const bucket=B.map(([n,fn])=>{const R=W12.filter(fn),v=R.map(r=>r[7]);return{n,k:R.length,avg:v.length?mean(v):null,win:v.length?v.filter(x=>x>0).length/v.length*100:null,min:v.length?Math.min(...v):null,now:fn(L)}});
-  const all=W12.map(r=>r[7]);
-  const rows=bucket.map(b=>`<tr class="${b.now?"now":""}"><td>${b.n}${b.now?"（いま）":""}</td><td>${b.k}</td><td>${sg(b.avg,1)}%</td><td>${f(b.win,0)}%</td><td>${sg(b.min,1)}%</td></tr>`).join("")+`<tr><td>全体</td><td>${all.length}</td><td>${sg(mean(all),1)}%</td><td>${f(all.filter(x=>x>0).length/all.length*100,0)}%</td><td>${sg(Math.min(...all),1)}%</td></tr>`;
-  const nb=bucket.find(b=>b.now);
-  const P=[L[5]>1?`重力は${sg(L[5])}σ。実質金利が10年平均の${f(L[2])}%を${f(L[3])}上回り、株の上昇を遅らせる力が強い状態だ。`:L[5]<-1?`重力は${sg(L[5])}σ。実質金利が10年平均を大きく下回る。重力は弱い。`:`重力は${sg(L[5])}σ。10年平均からの離れは小さい。`,
-    nb&&nb.k?`この区分の${nb.k}か月は、12か月後の S&P500 が${f(nb.win,0)}%でプラス、平均${sg(nb.avg,1)}%。`+(L[5]>1?"重力は落とすのではなく、上昇を遅くする。金利が高い時期は株がトレンドより下に押さえられ、そこが買い場になってきた。":L[5]<-1?"危ないのは金利が低いときだ。重力が弱いあいだに積み上がった高さは、金利が戻るときに試される。":"向かい風は、持ち続けない理由にならない。"):"",
-    "金利が先で、株価が後。割引計算の構造として一方通行だ（第十二章）。"];
-  return panel("重力",`${ymj(L[0])}　月次`,`<div class="hd">重力 ${sg(L[5])}σ<small>実質金利 ${f(L[1])}%　10年平均 ${f(L[2])}%</small></div>${sp}${C}
-    <table class="st"><tr><th>重力の区分</th><th>月数</th><th>12か月後</th><th>上昇</th><th>最小</th></tr>${rows}</table>
-    <p class="note">12か月後の S&P500 は月末の終値で比べる。隣り合う12か月は11か月ぶん重なるので、月数は独立した事例の数ではない。</p>
-    <div class="rd">${P.filter(Boolean).map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("重力という指標",[["作り方","10年の実質金利（物価連動債）から10年移動平均を引き、その差を差の標準偏差で割る。標準偏差の窓は最大10年、最低24か月。2003年に始まった実質金利から、10年と2年を捨てて2014年11月から計算できる（第十二章）。"],["投げ上げたボール","実質金利の上昇期も、株は上がってきた。ただ遅い。重力は落とす力ではなく、上昇を遅くする力だ。"]])}`);
+  const sc=v=>Math.abs(v)>=3?"#FF3B5C":Math.abs(v)>=2?"#FF9800":Math.abs(v)>=1?"#4CAF50":"#77777f";
+  const C=chart([{p:pts,bar:true,c:sc,op:.9,bw:.8}],{H:190,zero:true,ref:[{v:1,c:"#4CAF50",l:"+1σ"},{v:-1,c:"#4CAF50",l:"−1σ"}]});
+  const rows=B.map(b=>`<tr class="${b.now?"now":""}"><td>${b.n}${b.now?"（いま）":""}</td><td>${b.k}</td><td>${sg(b.avg,1)}%</td><td>${sg(b.med,1)}%</td><td>${sg(b.min,1)}%</td><td>${f(b.win,0)}%</td></tr>`).join("")
+    +`<tr><td>全体</td><td>${S.all.k}</td><td>${sg(S.all.avg,1)}%</td><td>${sg(S.all.med,1)}%</td><td>${sg(S.all.min,1)}%</td><td>${f(S.all.win,0)}%</td></tr>`;
+  const b1=B[0];
+  return panel("重力と区分",`図3-6・図3-8　${ymj(L[0])}`,`<div class="hd">重力 ${sg(L[5])}σ<small>実質金利 ${f(L[1])}%　10年平均 ${f(L[2])}%</small></div>${sp}${C}
+    <div class="lbl" style="margin-top:8px">区分ごとの12か月後の S&P500</div>
+    <table class="st"><tr><th>重力</th><th>月数</th><th>平均</th><th>中央値</th><th>最小</th><th>勝率</th></tr>${rows}</table>
+    <div class="rd"><p>+1σより上の${b1.k}か月は、12か月後が${b1.win===100?"すべてプラス":`${f(b1.win,0)}%でプラス`}。最小でも${sg(b1.min,1)}%。5つの区分すべてで、12か月後の平均はプラスだ。金利を理由に株を減らす根拠が、数字にない。</p></div>
+    <p class="note">12か月後の S&P500 は月末の終値で比べる。隣り合う12か月は11か月ぶん重なるので、月数は独立した事例の数ではない。</p>`);
+}
+function scatterPanel(){
+  const S=gStats();if(!S)return"";const {W12,L}=S;
+  const Wd=W(),H=230,ML=34,MR=10,MT=10,MB=24,PW=Wd-ML-MR,PH=H-MT-MB;
+  const xs=W12.map(r=>r[5]),ys=W12.map(r=>r[7]),x0=Math.floor(Math.min(...xs,-3)),x1=Math.ceil(Math.max(...xs,3)),y0=Math.floor(Math.min(...ys)/20)*20,y1=Math.ceil(Math.max(...ys)/20)*20;
+  const X=v=>ML+(v-x0)/(x1-x0)*PW,Y=v=>MT+(y1-v)/(y1-y0)*PH;
+  const mx=mean(xs),my=mean(ys),bt=xs.reduce((s,v,i)=>s+(v-mx)*(ys[i]-my),0)/xs.reduce((s,v)=>s+(v-mx)**2,0);
+  let o=`<rect x="${X(0)}" y="${MT}" width="${X(x1)-X(0)}" height="${PH}" fill="#2ee6ff" opacity=".05"/>`;
+  for(let v=y0;v<=y1;v+=20)o+=`<line x1="${ML}" x2="${ML+PW}" y1="${Y(v)}" y2="${Y(v)}" stroke="#fff" stroke-opacity="${v===0?.3:.06}"/><text x="${ML-5}" y="${Y(v)+3}" text-anchor="end">${v>0?"+":v<0?"−":""}${Math.abs(v)}%</text>`;
+  for(let v=x0;v<=x1;v++)o+=`<text x="${X(v)}" y="${H-8}" text-anchor="middle">${v>0?"+":v<0?"−":""}${Math.abs(v)}σ</text>`;
+  o+=`<line x1="${X(0)}" x2="${X(0)}" y1="${MT}" y2="${MT+PH}" stroke="#fff" stroke-opacity=".25"/>`;
+  W12.forEach(r=>{o+=`<circle cx="${X(r[5]).toFixed(1)}" cy="${Y(r[7]).toFixed(1)}" r="3" fill="${r[5]>0?"#2ee6ff":"#9a9aa4"}" opacity=".7"/>`});
+  o+=`<line x1="${X(x0)}" x2="${X(x1)}" y1="${Y(my+bt*(x0-mx))}" y2="${Y(my+bt*(x1-mx))}" stroke="#fff" stroke-opacity=".5" stroke-dasharray="4 3"/>`;
+  o+=`<line x1="${X(L[5])}" x2="${X(L[5])}" y1="${MT}" y2="${MT+PH}" stroke="#ffe066" stroke-dasharray="3 3"/><text x="${X(L[5])+4}" y="${MT+10}" style="fill:#ffe066">いま ${sg(L[5])}σ</text>`;
+  const C=`<div class="rchart"><svg viewBox="0 0 ${Wd} ${H}" height="${H}" role="img">${o}</svg></div>`;
+  return panel("重力と12か月後",`図3-7　${S.W12.length}件`,`<div class="hd">右へ行くほど、点が上に寄る<small>相関 ${sg(S.r)}</small></div>${C}
+    <div class="tiles t2"><div class="tile"><span>重力がマイナスの${S.neg.k}件</span><b>${sg(S.neg.avg,1)}%</b><small>勝率 ${f(S.neg.win,0)}%</small></div><div class="tile"><span>重力がプラスの${S.pos.k}件</span><b>${sg(S.pos.avg,1)}%</b><small>勝率 ${f(S.pos.win,0)}%</small></div></div>
+    <p class="note">横は各月の重力、縦はその12か月後の S&P500。点線は回帰の直線。</p>`);
 }
 function capePanel(){
-  const C0=J.mo&&J.mo.cape||[],M=J.mo&&J.mo.real&&J.mo.real.monthly||[];if(!C0.length||!M.length)return"";
-  const rm=new Map(M.map(r=>[r[0],r[2]])),pair=C0.filter(r=>rm.has(r[0])&&rm.get(r[0])!=null);
-  const r=corr(pair.map(p=>p[3]),pair.map(p=>rm.get(p[0])));
+  const pair=capePairs();if(!pair.length)return"";
+  const r=corr(pair.map(p=>p[1]),pair.map(p=>p[2]));
   const pre=pair.filter(p=>p[0]<"2008-09"),post=pair.filter(p=>p[0]>="2008-09");
-  const rp=pre.length>24?corr(pre.map(p=>p[3]),pre.map(p=>rm.get(p[0]))):null,rq=corr(post.map(p=>p[3]),post.map(p=>rm.get(p[0])));
-  const L=pair[pair.length-1];
-  const C=chart([{p:pair.map(p=>[dms(p[0]),p[3]]),c:"#5fd08e",w:1.5,end:false},{p:pair.map(p=>[dms(p[0]),-rm.get(p[0])]),c:"#2ee6ff",w:1.4,r:true,end:false}],{H:200,zero:true,right:true,rinv:true,rc:"#2ee6ff",lc:"#5fd08e",rdec:1});
-  const P=[`2003年以降、実質金利と株価の補正後乖離の相関は${f(r)}。リーマン前は${rp!=null?sg(rp):"–"}、後は${sg(rq)}。金融政策が金利を動かしているとき、金利は重力として働く。景気が金利を動かしているとき、金利は温度計になる。`,
-    `いまの補正後乖離は${sg(L[3],1)}%（${ymj(L[0])}、CAPE ${f(L[1],1)}）。`+(L[3]>0?"実質金利が高いのに株価はトレンドより上にある。重力に逆らって浮いている形だ。":"株価はトレンドより下で、重力に押さえられている。")];
-  return panel("実質金利と株価",`${ymj(L[0])}　月次`,`<div class="hd">相関 ${f(r)}<small>実質金利が上がると、株価はトレンドの下へ</small></div>${C}
-    ${lg([["株価の補正後乖離（CAPE、左 %）","#5fd08e"],["実質金利（右、上下を反転）","#2ee6ff"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
-    ${xpl("補正後乖離",[["2段階の補正","CAPE の10年移動平均からの乖離率を出し、さらにその乖離率の10年平均を引く。長い時間で上がり続ける株価の水準を外し、トレンドからの上下だけを残す（第十章）。"],["相関の読み方","本書の測定は2003〜2026年7月の283か月で−0.68。トレンドを除いた株価の変動の半分近くを実質金利が説明する。隣り合う月は重なるので、283個は独立した証拠ではない。"]])}`);
+  const rp=pre.length>24?corr(pre.map(p=>p[1]),pre.map(p=>p[2])):null,rq=corr(post.map(p=>p[1]),post.map(p=>p[2]));
+  const L=pair[pair.length-1],RC=rollC(pair);
+  const C=chart([{p:pair.map(p=>[dms(p[0]),p[1]]),c:"#5fd08e",w:1.5,end:false},{p:pair.map(p=>[dms(p[0]),-p[2]]),c:"#2ee6ff",w:1.4,r:true,end:false}],{H:200,zero:true,right:true,rinv:true,rc:"#2ee6ff",lc:"#5fd08e",rdec:1});
+  const strip=chart([{p:RC.map(x=>[dms(x[0]),x[1]]),bar:true,c:v=>v<0?"#2ee6ff":"#77777f",op:.9,bw:1}],{H:100,zero:true,t0:dms(pair[0][0]),t1:dms(L[0]),nt:2})+lg([["逆向き（重力）","#2ee6ff"],["同じ向き（温度計）","#77777f"]]);
+  // 第十章: 12-month windows when the real rate rose or fell, and the S&P500 over the same 12 months
+  const G=J.mo&&J.mo.gravity||[],up=[],dn=[];for(let i=12;i<G.length;i++){const d=G[i][1]-G[i-12][1],sp=(G[i][6]/G[i-12][6]-1)*100;(d>0?up:dn).push(sp)}
+  const G1=G[G.length-1],G0=G[G.length-13],dNow=G1&&G0?G1[1]-G0[1]:null;
+  const w=v=>v.filter(x=>x>0).length/v.length*100;
+  const T=`<table class="st"><tr><th>実質金利（12か月）</th><th>件数</th><th>S&P500 平均</th><th>上昇した割合</th></tr>
+    <tr class="${dNow>0?"now":""}"><td>上がった${dNow>0?"（いま）":""}</td><td>${up.length}</td><td>${sg(mean(up),1)}%</td><td>${f(w(up),0)}%</td></tr>
+    <tr class="${dNow<=0?"now":""}"><td>下がった${dNow<=0?"（いま）":""}</td><td>${dn.length}</td><td>${sg(mean(dn),1)}%</td><td>${f(w(dn),0)}%</td></tr></table>`;
+  const P=[`2003年以降、実質金利と株価の補正後乖離の相関は${f(r)}。リーマン前は${rp!=null?sg(rp):"–"}、後は${sg(rq)}。`,
+    `落ちるのではなく、遅くなる。実質金利が上がった12か月でも S&P500 は平均${sg(mean(up),1)}%、下がった12か月は${sg(mean(dn),1)}%。差の${f(mean(dn)-mean(up),1)}ポイントが重力の大きさで、どちらもプラスだ。`,
+    `いまの補正後乖離は${sg(L[1],1)}%（${ymj(L[0])}、実質金利 ${f(L[2])}%）。`+(L[1]>0?"実質金利が高いのに株価はトレンドより上にある。重力に逆らって浮いている形だ。":"株価はトレンドより下で、重力に押さえられている。")];
+  return panel("実質金利と株価",`図3-3　${ymj(L[0])}`,`<div class="hd">相関 ${f(r)}<small>実質金利が上がると、株価はトレンドの下へ</small></div>${C}
+    ${lg([["株価の補正後乖離（CAPE、左 %）","#5fd08e"],["実質金利（右、上下を反転）","#2ee6ff"]])}
+    <div class="lbl" style="margin-top:8px">6か月ローリング相関</div>${strip}${T}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
+    ${xpl("補正後乖離",[["2段階の補正","CAPE の10年移動平均からの乖離率を出し、さらにその乖離率の10年平均を引く。長い時間で上がり続ける株価の水準を外し、トレンドからの上下だけを残す（第十章）。"],["相関の読み方","本書の測定は2003〜2026年7月の283か月で−0.68、決定係数0.47。トレンドを除いた株価の変動の半分近くを実質金利が説明する。隣り合う月は重なるので、283個は独立した証拠ではない。"],["黒と白","深さではなく、向きを見る。黒が続くのは、金融政策が金利を動かしている時期だ。"]])}`);
 }
 function fiscalPanel(){
   const Fz=J.mo&&J.mo.fiscal;if(!Fz)return"";
@@ -584,15 +663,11 @@ function growthPanel(){
     ne&&ne[1]>2.5?"成長と物価がそろって高い経済は、熱を逃がす窓を持たない。中立の上の政策金利が、まだ効ききっていない形だ。":ne&&ne[1]<1?"成長は鈍っている。政策金利が中立の上にある重さが、実体に届き始めた形だ。":"成長は巡航の速さにある。"];
   return panel("景気",`${qj(L[0])}`,`<div class="tiles t2"><div class="tile"><span>実質 GDP（${qj(L[0])}）</span><b>${f(L[1],1)}%</b></div><div class="tile"><span>GDPNow（${gn?qj(gn.quarter):""}）</span><b>${ne?f(ne[1],2):"–"}%</b></div></div>${C}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
-function routeBox(A){
-  return `<div class="path"><span>政策金利</span><em>→</em><span>短期金利</span><em>→ 0.91 →</em><span>長期名目</span><em>→ 0.94 →</em><span>長期実質</span><em>→ −0.68 →</em><span class="g">株価（重力）</span></div>
-  <p class="note">中央銀行が決められるのは翌日物と量だけ。だが、それが十分に大きい。経路の数字は本書の測定（終章）。</p>`;
-}
 let Nw0=null;
 function renderRate(){
   const A=axis(),Nw=now();Nw0=Nw;if(!A||!Nw){$("rate").innerHTML=`<div class="empty">読み込み中…</div>`;return}
-  $("rate").innerHTML=rAxisPanel(A,Nw)+rstarPanel(A)+sec("中央銀行","政策金利、FedWatch、ドット")+policyPanel(A)+fedwPanel(A)+
-    sec("金利","短期は中央銀行、長期は市場")+curvePanel()+decompPanel(A)+sec("金利の重力","金利が先で、株価が後")+panel("経路","",routeBox(A))+gravityPanel()+capePanel()+
+  $("rate").innerHTML=rstarPanel(A)+rAxisPanel(A,Nw)+sec("中央銀行","政策金利、FedWatch、ドット")+policyPanel(A)+fedwPanel(A)+
+    sec("金利","短期は中央銀行、長期は市場")+curvePanel()+decompPanel(A)+sec("金利の重力","重力が高いときは、売る場面ではなく買う場面")+gravHero(Nw)+routePanel(Nw)+capePanel()+gravityPanel()+scatterPanel()+
     sec("財政と信用","比べる相手と、カナリア")+fiscalPanel()+oasPanel()+sec("動けない二つの中央銀行","金利差が資金を動かす")+japanPanel()+
     sec("金利を動かすもの","物価・雇用・景気")+pricePanel()+jobsPanel()+growthPanel();
 }
