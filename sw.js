@@ -1,5 +1,5 @@
 // Offline shell; the page and the data are always fetched fresh when online. Bump CACHE when the app files change.
-const CACHE = "mo-v30";
+const CACHE = "mo-v31";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "../fear-index/suite.js"];
 const fresh = req => fetch(req.url, { cache: "no-cache", credentials: "same-origin" });
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
