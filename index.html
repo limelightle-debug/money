@@ -219,12 +219,13 @@ const lastMo=()=>{const a=J.mo&&J.mo.real&&J.mo.real.all;return a&&a[a.length-1]
 // pick(row) gives the market rate from a daily row [d, n2, n10, n30, r5, r10, r30]. Rows: [time, value, LW quarter, avg, 3-month MA]
 const qOfK=k=>{k=String(k);return k.slice(0,4)+"-Q"+Math.ceil(+k.slice(4,6)/3)};
 const F55=r=>r[4]!=null&&r[5]!=null?2*r[5]-r[4]:null, R10=r=>r[5];
-// 市場の自然利子率: on its own, not tied to LW. The book's axis puts the 10-year real yield at r* + 0.5 (the real half of
-// the 10-year's 1% risk premium), so the market's r* = 10-year real yield − 0.5, as a 3-month moving average (it should
-// not jump day to day). Every day since 2003. Rows: [time, market r*]
+// 市場の自然利子率: on its own, not tied to LW, and as slow as LW. LW's r* is the long-run rate, so the market rate is the
+// 5-year real rate 5 years ahead (2 × 10Y real − 5Y real, which leaves out the next few years of the cycle), less the real
+// premium of 0.5, as a 12-month moving average: its quarter-to-quarter moves are as large as LW's (sd 0.16 against 0.17),
+// and the pandemic's short shock moves it far less. Every day since 2003. Rows: [time, market r*]
 function mktR(){
   const all=J.mo&&J.mo.real&&J.mo.real.all||[],out=[],win=[];let ws=0;
-  all.forEach(r=>{const v=r[5];if(v==null)return;const t=dms(r[0]);win.push([t,v]);ws+=v;while(t-win[0][0]>91*864e5)ws-=win.shift()[1];out.push([t,ws/win.length-RP_R])});
+  all.forEach(r=>{const v=F55(r);if(v==null)return;const t=dms(r[0]);win.push([t,v]);ws+=v;while(t-win[0][0]>365*864e5)ws-=win.shift()[1];if(t-win[0][0]>300*864e5)out.push([t,ws/win.length-RP_R])});
   return out}
 // LW for the quarter of time t (the latest published one for quarters not out yet)
 const lwAt=t=>{const H=(J.rs&&J.rs.hist||[]).filter(h=>h[2]!=null);const d=new Date(t),k=`${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth()/3)+1}`;let v=null;for(const h of H){if(h[0]<=k)v=h[2];else break}return v};
@@ -272,7 +273,7 @@ function rAxisPanel(A,Nw){
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("軸の作り方",[["軸は LW モデルに固定する","ニューヨーク連銀の LW モデルの自然利子率（r*）にインフレ目標2%を足したものが名目中立金利。10年はさらに1%のリスクプレミアムを乗せる。内訳は実質金利に0.5%、インフレ期待に0.5%で、実質の軸は r*+0.5、期待インフレの軸は2.5%になる。30年は1.5を乗せ、実質金利に0.75%、インフレ期待に0.75%。どれが正しいかではなく、基準を一つに固定しなければ乖離が測れない。真ん中が動かないから、振れ幅が測れる（第八章）。"],
       ["目標を足す理由","期待インフレではなく目標を足すのは、FRB が戻そうとする場所だから。理由であって、根拠ではない。期待で測れば結論は変わる。下の分解で、実質と期待インフレの両方を示している。"],
-      ["市場の自然利子率","公式の LW は四半期ごとで、一期遅れて出る。市場の自然利子率は LW とは別に、10年の実質金利から実質の上乗せ0.5を引いたもの（3か月の移動平均）。毎日出る。"],
+      ["市場の自然利子率","公式の LW は四半期ごとで、一期遅れて出る。市場の自然利子率は LW とは別に、5年先から5年間の実質金利から実質の上乗せ0.5を引き、12か月の移動平均にしたもの。LW と同じくらいゆっくり動き、毎日出る。"],
       ["同じ日の値","政策金利、10年、30年、実質と期待インフレは同じ日の値。別々の日の数字を混ぜると、分解が成立しない（第十七章）。"]])}`,"hero");
 }
 function rstarPanel(A){
@@ -292,12 +293,12 @@ function rstarPanel(A){
   const L=S[S.length-1],a3=S.filter(q=>q[0]<=L[0]-91*864e5).pop(),d=L[1]-A.rs;
   const LN=J.mo&&J.mo.lwnow,lp=LN&&LN.path&&LN.path.length&&LN.base[0]===A.q?LN.path[LN.path.length-1]:null;
   const P=[`市場の自然利子率は${f(L[1])}%で、3か月で${sg(L[1]-a3[1])}動いた。公式の LW は${qj(A.q)}の${f(A.rs)}%で止まっている。`+(d>.15?`市場は公式より${f(d)}高い場所に中立を置いている。`:d<-.15?`市場は公式より${f(-d)}低い場所に中立を置いている。`:"市場と公式は、ほぼ同じ高さにある。")];
-  const xs=[["市場の自然利子率","本書の軸では、10年の実質金利は r* に0.5（10年のリスクプレミアム1%のうち実質金利の分）を乗せた高さに置かれる。だから10年の実質金利から0.5を引けば、市場が織り込む r* になる。毎日の値は振れるので3か月の移動平均で見る。LW とは無関係に、2003年から毎日出る。"],
+  const xs=[["市場の自然利子率","LW は景気の波が消えたあとの長い先の実質金利を、四半期ごとにゆっくり推計する。市場の自然利子率も同じ長い先を見るため、5年先から5年間の実質金利（10年の実質金利の2倍から5年の実質金利を引いたもの）を使い、実質の上乗せ0.5を引く。それを12か月の移動平均にして、四半期ごとの振れを LW と同じくらいに抑える（コロナのような短い衝撃に振り回されない）。LW とは無関係に、毎日出る。"],
     ["公式の LW","ニューヨーク連銀の LW モデル。GDP と物価から推計する。四半期ごとで、一期遅れて出る（8月に4〜6月の値）。本書はこれを軸に固定する。"]];
   if(LN&&LN.bt)xs.push(["LW の次の値の見込み",`LW は GDP と物価のモデルなので、市場の金利では当てられない（市場の自然利子率の動きと次の LW の動きの向きの一致は五分五分）。GDP からは当てられる。ΔLW = ${f(LN.coef[0],3)} + ${f(LN.coef[1],3)}×実質GDP（前期比年率） + ${f(LN.coef[2],3)}×Δコア PCE。実質GDP の伸びが約${f(-LN.coef[0]/LN.coef[1],1)}%を超える四半期に LW は上がる。バックテスト（${qj(LN.bt.from)}から${LN.bt.n}四半期）で向きの一致${Math.round(LN.bt.hit*100)}%、外れの平均${f(LN.bt.mae,3)}（前の LW のままなら${f(LN.bt.naive,3)}）。`+(lp?`いまの見込みは${qj(lp[0])}で${f(lp[4])}%（${lp[2]==="GDPNow"?"GDPNow":"実質GDP"} ${f(lp[1],2)}%から）。`:"")]);
   xs.push(["自然利子率とは","景気を冷やしも温めもしない実質金利。観測できず、モデルで推計するしかない。LW と HLW で0.6も違う。"]);
   return panel("自然利子率",`${mdj(Nw0.date)}`,`<div class="hd">${f(L[1])}%<small>市場の自然利子率と公式の LW</small></div>${sp}${C}
-    ${lg([["市場の自然利子率（10年実質 − 0.5、3か月平均）","#2ee6ff"],[`公式 LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"]])}
+    ${lg([["市場の自然利子率（5年先5年実質 − 0.5、12か月平均）","#2ee6ff"],[`公式 LW（各四半期、${qj(A.q).replace(/^\d+年/,"")}まで）`,"#fff"]])}
     <div class="lbl" style="margin-top:8px">公式 LW との差（市場 − 同じ四半期の LW）</div>${C2}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("自然利子率の作り方",xs)}`);
