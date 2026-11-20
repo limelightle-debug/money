@@ -71,6 +71,7 @@ table.ax tr.subr td{font-size:12.5px;color:var(--muted);padding-top:2px}table.ax
 .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 .lg i.d{background:none!important;border-top:2px dashed;height:0}
 .note{font-size:11.5px;color:var(--muted);line-height:1.6;margin:6px 0 0}
+.etag{font-style:normal;font-family:var(--f-body);font-size:11px;font-weight:700;color:var(--amber);border:1px solid #ffb54788;border-radius:9px;padding:1px 7px;margin-left:6px}
 .xpl{margin:10px 0 4px;border:1px solid var(--line);border-radius:10px;padding:0 12px}
 .xpl summary{list-style:none;cursor:pointer;padding:10px 0;font-size:13.5px;font-weight:700;color:var(--neon)}.xpl summary::-webkit-details-marker{display:none}
 .xpl summary::after{content:"＋";float:right;color:var(--muted)}.xpl[open] summary::after{content:"－"}
@@ -465,6 +466,28 @@ function curvePanel(){
     ${lg([["最新",RC.now],["3か月前",RC.m3],["6か月前",RC.m6,1]])}${sp}${C2}${lg([["10年−2年",RC.now],["10年−3か月（参考）",RC.m3,1]])}
     <div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
+// realtime estimates of the 10Y real yield, breakeven and OAS (moved here from MRI): the last official values
+// (curve.json, the institute's oas.json) plus today's ETF moves, replaced once the day's official value is out
+function estPanel(){
+  const I=J.cv&&J.cv.infl,it={};
+  // OAS: the newer of this suite's two copies (MRI's runs every few minutes, the institute's each morning)
+  const O=[J.oa,J.oa2,J.cv&&J.cv.oas].filter(x=>x&&x.date&&x.hy!=null).sort((x,y)=>x.date<y.date?1:-1)[0];(J.mk&&J.mk.items||[]).forEach(x=>it[x.k]=x);
+  if(!I&&!O)return"";
+  const day=x=>x&&String(x.time||"").slice(0,10),mday=day(it.tip)||day(it.us10y);
+  const DUR={tip:6.6,ief:7,hyg:3.1,lqd:8.2},pct=k=>it[k]&&it[k].pct!=null?it[k].pct:null;
+  // credit: the ETF's move net of the Treasury move at its own duration, as a spread change
+  const cr=k=>pct(k)==null||pct("ief")==null?null:-(pct(k)-pct("ief")*DUR[k]/DUR.ief)/DUR[k];
+  const dR=pct("tip")==null?null:-pct("tip")/DUR.tip,dN=it.us10y&&it.us10y.chg!=null?it.us10y.chg:null;
+  const newer=b=>b&&mday&&mday>b.date;
+  const rows=[];
+  if(I){const on=newer(I)&&dR!=null;rows.push(["10年実質金利",I.real10,on?dR:null]);rows.push(["10年インフレ期待",I.be10,on&&dN!=null?dN-dR:null])}
+  if(O){const on=newer(O);rows.push(["OAS ハイイールド",O.hy,on?cr("hyg"):null]);rows.push(["OAS 投資適格",O.ig,on?cr("lqd"):null])}
+  const md=d=>d?`${+d.slice(5,7)}/${+d.slice(8,10)}`:"-";
+  const tm=it.tip&&it.tip.time?new Date(it.tip.time).toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Tokyo"}):"";
+  return panel("金利の推定",`リアルタイム${tm?" "+tm:""}`,`<table class="ax"><tbody>${rows.map(([k,b,d])=>
+    `<tr><td>${k}</td><td>${f(b+(d||0))}%${d==null?"":`<em class="etag">推定値</em>`}</td></tr>`).join("")}</tbody></table>
+    <p class="note">推定値は、最新の公式値（実質金利・インフレ期待 ${I?md(I.date):"-"}、OAS ${O?md(O.date):"-"}）に今日の ETF の値動きを足したもので、その日の公式値が出たら置き換わる。実質金利は TIP、OAS は HYG・LQD から IEF（国債）の動きを除いて、それぞれのデュレーションで割って求める。TIP は満期がまちまちで10年ではないので、目安として見る。</p>`);
+}
 function decompPanel(A){
   const M=J.mo&&J.mo.real&&J.mo.real.monthly||[];if(!M.length)return"";
   const all=J.mo.real.all;
@@ -671,7 +694,7 @@ let Nw0=null;
 function renderRate(){
   const A=axis(),Nw=now();Nw0=Nw;if(!A||!Nw){$("rate").innerHTML=`<div class="empty">読み込み中…</div>`;return}
   $("rate").innerHTML=rstarPanel(A)+rAxisPanel(A,Nw)+sec("中央銀行","政策金利、FedWatch、ドット")+policyPanel(A)+fedwPanel(A)+
-    sec("金利","短期は中央銀行、長期は市場")+curvePanel()+decompPanel(A)+sec("金利の重力","重力が高いときは、売る場面ではなく買う場面")+gravHero(Nw)+routePanel(Nw)+capePanel()+gravityPanel()+scatterPanel()+
+    sec("金利","短期は中央銀行、長期は市場")+curvePanel()+estPanel()+decompPanel(A)+sec("金利の重力","重力が高いときは、売る場面ではなく買う場面")+gravHero(Nw)+routePanel(Nw)+capePanel()+gravityPanel()+scatterPanel()+
     sec("財政と信用","比べる相手と、カナリア")+fiscalPanel()+oasPanel()+sec("動けない二つの中央銀行","金利差が資金を動かす")+japanPanel()+
     sec("金利を動かすもの","物価・雇用・景気")+pricePanel()+jobsPanel()+growthPanel();
 }
