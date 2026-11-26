@@ -440,6 +440,7 @@ function fedwPanel(A){
     `${mdj(l.date)}までに市場は25bp換算で${sg(l.moves,1)}回分を織り込み、到達点${f(l.after)}は軸の${sg(l.after-A.N)}。`+(l.after>A.N+.25?"市場は中立のはっきり上まで上げると見ている。":l.after<A.N?"市場は中立の下へ戻ると見ている。":"市場は中立のすぐ上で止まると見ている。"),
     md.length?`FOMC の中央値は${md.slice(0,3).map(r=>`${r[0].slice(0,4)}年末${f(r[1],1)}`).join("、")}。${md[0][1]>A.N?"委員自身も中立の上を適切と見ている。":""}`:""];
   return panel("FedWatch と市場の織り込み",`誘導目標 ${f(fw.target[0])}〜${f(fw.target[1])}%`,`<div class="hd">${up?"市場は利上げを織り込む":"市場は据え置きか利下げを見る"}<small>${mdj(l.date)}会合後 ${f(l.after)}%（軸 ${f(A.N)}%）</small></div>
+    <div class="lbl" style="margin-top:12px">織り込まれた政策金利の道筋（%）</div>${chart([{p:[[Date.now(),fw.now]].concat(M.map(m=>[dms(m.date),m.after])),c:"#6ec3ff",w:2,u:"%"}],{H:200,ref:[{v:pol,c:"#fff",l:"いまの誘導目標"},{v:A.N,c:"#ffb547",l:"軸（名目中立）"}]})}
     <table class="st"><tr><th>会合</th><th>最有力</th><th>確率</th><th>会合後</th><th>軸との差</th></tr>${rows}</table>${y2mBlock()}
     <div class="rd">${P.filter(Boolean).map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("3つの乖離",[["政策金利との乖離","FOMC が実際に置いている金利と軸の差。"],["ドットプロットとの乖離","ドットは予測ではなく、委員が適切だと考える水準。年ごとの中央値の修正の向きを見る。"],["市場金利との乖離","FF 先物から読む会合後の金利と、10年・30年の利回りが軸からどれだけ離れているか。3つの差が、いま何が起きているかを示す（第八章）。"]])}`);
@@ -705,6 +706,26 @@ function pricePanel(){
     <div class="tile"><span>PCE</span><b>${f(pce,1)}%</b></div><div class="tile"><span>コア PCE</span><b>${f(cpce,1)}%</b></div><div class="tile"><span>PPI</span><b>${f(ppi,1)}%</b></div></div>${C}
     ${lg([["CPI","#ffb547"],["コア CPI","#ff7a8a"],["コア PCE（FRB の物差し）","#2ee6ff"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
+// the Beveridge curve: openings rate against unemployment, month by month (as in the paper); months above 8%
+// unemployment (2020) are left out of the frame and noted
+function beveridge(U,V,Wd){
+  const um=new Map(U),P=V.filter(q=>um.has(q[0])).map(q=>[q[0],um.get(q[0]),q[1]]),out=P.filter(q=>q[1]>8),Q=P.filter(q=>q[1]<=8);
+  if(Q.length<6)return"";
+  const H=Math.round(Math.min(300,Wd*.78)),ML=30,MR=16,MT=10,MB=26,PW=Wd-ML-MR,PH=H-MT-MB;
+  const xs=Q.map(q=>q[1]),ys=Q.map(q=>q[2]),lo=Math.floor(Math.min(...xs,...ys)),hi=Math.ceil(Math.max(...xs,...ys));
+  const x=v=>ML+(v-lo)/(hi-lo)*PW,y=v=>MT+(hi-v)/(hi-lo)*PH,n=Q.length;
+  let g="";
+  for(let v=lo;v<=hi;v++)g+=`<line x1="${ML}" x2="${ML+PW}" y1="${y(v)}" y2="${y(v)}" stroke="#fff" stroke-opacity=".06"/><line x1="${x(v)}" x2="${x(v)}" y1="${MT}" y2="${MT+PH}" stroke="#fff" stroke-opacity=".06"/><text x="${ML-5}" y="${y(v)+3}" text-anchor="end">${v}</text><text x="${x(v)}" y="${MT+PH+13}" text-anchor="middle">${v}</text>`;
+  g+=`<line x1="${x(lo)}" y1="${y(lo)}" x2="${x(hi)}" y2="${y(hi)}" stroke="#fff" stroke-opacity=".35" stroke-dasharray="3 3"/><text x="${x(hi)-4}" y="${y(hi)+12}" text-anchor="end">求人率=失業率</text>`;
+  g+=`<text x="${ML+PW}" y="${H-2}" text-anchor="end">失業率 %</text><text x="${ML+4}" y="${MT+9}">求人率 %</text>`;
+  let p="";
+  const mi=k=>+k.slice(0,4)*12+ +k.slice(5,7);
+  for(let i=1;i<n;i++){if(mi(Q[i][0])-mi(Q[i-1][0])>1)continue;const t=i/(n-1),a=.06+.94*t**2.2,sw=.4+2.2*t**1.8;p+=`<line x1="${x(Q[i-1][1]).toFixed(1)}" y1="${y(Q[i-1][2]).toFixed(1)}" x2="${x(Q[i][1]).toFixed(1)}" y2="${y(Q[i][2]).toFixed(1)}" stroke="#2ee6ff" stroke-opacity="${a.toFixed(2)}" stroke-width="${sw.toFixed(2)}" stroke-linecap="round"/>`}
+  const L=Q[n-1];
+  Q.forEach((q,i)=>{if(q[0].endsWith("-01")&&i>n-62&&Math.hypot(x(q[1])-x(L[1]),y(q[2])-y(L[2]))>22)p+=`<circle cx="${x(q[1])}" cy="${y(q[2])}" r="2" fill="#2ee6ff"/><text x="${x(q[1])+4}" y="${y(q[2])-4}" style="fill:var(--ink2)">${q[0].slice(0,4)}</text>`});
+  p+=`<circle cx="${x(L[1])}" cy="${y(L[2])}" r="4.5" fill="#fff" stroke="#2ee6ff" stroke-width="2"/><text x="${x(L[1])+7}" y="${y(L[2])+4}" style="fill:var(--ink);font-weight:700">${L[0].slice(0,4)}/${+L[0].slice(5)}</text>`;
+  return `<div class="rchart"><svg viewBox="0 0 ${Wd} ${H}" height="${H}">${g}${p}</svg></div>`+(out.length?`<p class="note">失業率が8%を超えた月（${out[0][0].slice(0,4)}/${+out[0][0].slice(5)}〜${out[out.length-1][0].slice(0,4)}/${+out[out.length-1][0].slice(5)}）は枠の外。</p>`:"");
+}
 function jobsPanel(){
   const ma=J.ma;if(!ma)return"";const b=ma.bls;
   const last=k=>b[k]&&b[k][b[k].length-1],ago=(k,n)=>b[k]&&b[k][b[k].length-1-n];
@@ -718,9 +739,23 @@ function jobsPanel(){
       `新規の失業保険申請は${big(cl[1]/1000)}千件で、解雇は${cl[1]<250000?"広がっていない":"増えている"}。`,
     "いまの米国で失業率が上がりにくいのは、高齢者の早期引退と移民規制で働き手そのものが減っているからだ（Ryo の読み）。雇用者の増加が細くても失業率が上がらないことを、雇用の強さと取り違えない。景気の強さは25〜54歳で見る。",
     `雇用者は前月比${sg(dp,0)}千人、3か月平均${sg(dp3,0)}千人。求人率${f(jo[1],1)}%は失業率${f(u[1],1)}%を${jo[1]>u[1]?"上回り、人手不足はまだ残る":"下回り、人手不足は解けた"}。平均時給は前年比${f(ahe,1)}%で、物価${f(cpi,1)}%を${f(Math.abs(ahe-cpi),1)}${ahe>=cpi?"上回る。実質賃金はプラスだ":"下回る。実質賃金はマイナスで、家計は静かに痩せている"}。`];
+  // the paper's jobs charts: payroll changes, wages against prices, the Beveridge curve, jobless claims (4 years)
+  const cut=Date.UTC(new Date().getUTCFullYear()-4,0,1);
+  const C3=chart([{p:pay.map((r,i)=>i?[dms(r[0]),r[1]-pay[i-1][1]]:null).filter(q=>q&&q[0]>=cut),bar:true,op:.85,c:v=>v>=0?"#2ee6ff":"#ff4d5e",dec:0}],{H:180,zero:true});
+  const wy=yoyS(b.ahe).filter(q=>q[0]>=cut),cy=yoyS(b.cpi).filter(q=>q[0]>=cut);
+  const C4=chart([{p:wy,c:"#7fd6a4",w:1.6,u:"%",dec:1},{p:cy,c:"#ff8a7a",w:1.4,u:"%",dec:1}],{H:180});
+  const CL=ma.claims.filter(q=>dms(q[0])>=cut);
+  const C5=chart([{p:CL.map(q=>[dms(q[0]),q[1]/1e3]),c:"#ffb547",w:1.4,dec:0}],{H:170});
+  const C6=chart([{p:CL.filter(q=>q[2]).map(q=>[dms(q[0]),q[2]/1e4]),c:"#e58cff",w:1.4,dec:0}],{H:170});
+  const lw=wy[wy.length-1],lc=cy.find(q=>lw&&q[0]===lw[0]),realw=lw&&lc?lw[1]-lc[1]:null;
+  const more=`<div class="lbl" style="margin-top:14px">雇用者数の増減（千人）</div>${C3}
+    <div class="lbl" style="margin-top:14px">平均時給と物価（前年比）</div>${C4}${lg([["平均時給","#7fd6a4"],["CPI","#ff8a7a"]])}${realw!=null?`<p class="note">${ymj(b.ahe[b.ahe.length-1][0])}の実質賃金は${sg(realw,1)}pt。${realw>=0?"賃金が物価を上回る。":"物価が賃金を上回る。"}</p>`:""}
+    <div class="lbl" style="margin-top:14px">ベヴァリッジ曲線（${b.jolts[0][0].slice(0,4)}年から）</div>${beveridge(b.unrate,b.jolts,W())}
+    <div class="lbl" style="margin-top:14px">失業保険の新規申請（千件、週次）</div>${C5}
+    ${CL.some(q=>q[2])?`<div class="lbl" style="margin-top:14px">失業保険の継続申請（万件、週次）</div>${C6}`:""}`;
   return panel("雇用",`${ymj(u[0])}`,`<div class="hd">失業率${f(u[1],1)}%　参加率${f(cp[1],1)}%<small>25〜54歳 ${f(pr[1],1)}%（1年で${sg(pr[1]-pr12[1],1)}）　16歳以上は1年で${sg(cp[1]-cp12[1],1)}</small></div><div class="tiles"><div class="tile"><span>失業率</span><b>${f(u[1],1)}%</b></div><div class="tile"><span>労働参加率</span><b>${f(cp[1],1)}%</b></div><div class="tile"><span>25〜54歳</span><b>${f(pr[1],1)}%</b></div>
     <div class="tile"><span>雇用者 前月比</span><b>${sg(dp,0)}<small>千人</small></b></div><div class="tile"><span>求人率</span><b>${f(jo[1],1)}%</b></div><div class="tile"><span>平均時給</span><b>${f(ahe,1)}%</b></div></div>
-    ${C}${lg([["失業率","#ffb547"],["求人率（JOLTS）","#5fd08e"]])}${C2}${lg([["25〜54歳の参加率（左）","#2ee6ff"],["労働参加率 16歳以上（右）","#b59cff"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
+    ${C}${lg([["失業率","#ffb547"],["求人率（JOLTS）","#5fd08e"]])}${C2}${lg([["25〜54歳の参加率（左）","#2ee6ff"],["労働参加率 16歳以上（右）","#b59cff"]])}${more}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
 function growthPanel(){
   const ma=J.ma;if(!ma)return"";const G=ma.gdp,gn=ma.gdpnow;
@@ -730,7 +765,12 @@ function growthPanel(){
   const C=chart(S,{H:160,zero:true});
   const P=[`実質 GDP は${qj(L[0])}に前期比年率${f(L[1],1)}%。`+(ne?`GDPNow は${qj(gn.quarter)}を${f(ne[1],2)}%と見る（${mdj(ne[0])}、最初の${f(n0[1],2)}%から${sg(ne[1]-n0[1],2)}）。`:""),
     ne&&ne[1]>2.5?"成長と物価がそろって高い経済は、熱を逃がす窓を持たない。中立の上の政策金利が、まだ効ききっていない形だ。":ne&&ne[1]<1?"成長は鈍っている。政策金利が中立の上にある重さが、実体に届き始めた形だ。":"成長は巡航の速さにある。"];
-  return panel("景気",`${qj(L[0])}`,`<div class="tiles t2"><div class="tile"><span>実質 GDP（${qj(L[0])}）</span><b>${f(L[1],1)}%</b></div><div class="tile"><span>GDPNow（${gn?qj(gn.quarter):""}）</span><b>${ne?f(ne[1],2):"–"}%</b></div></div>${C}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
+  // GDPNow for the quarter being tracked, each update; and how its last nowcast compared with BEA's advance estimate
+  const ahead=ne&&gn.quarter>L[0],pe=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const evo=ahead&&e.length>1?`<div class="lbl" style="margin-top:12px">GDPNow ${qj(gn.quarter)}の推移（%）</div>${chart([{p:e.map(q=>[dms(q[0]),q[1]]),c:"#ffb547",w:1.6,u:"%"}],{H:180,zero:true})}${ne[2]?`<p class="note">最新の更新 ${mdj(ne[0])}：${pe(ne[2]).replace(/\n/g," ")}</p>`:""}`:"";
+  const T=gn&&gn.track&&gn.track.length?gn.track.slice(-6).reverse():[];
+  const trk=T.length?`<div class="lbl" style="margin-top:12px">GDPNow の実績</div><table class="st"><tr><th>四半期</th><th>直前の予測</th><th>速報値</th><th>差</th></tr>${T.map(([q,a,b])=>`<tr><td>${qj(q)}</td><td>${f(a,2)}%</td><td>${f(b,2)}%</td><td>${sg(b-a,2)}</td></tr>`).join("")}</table>`:"";
+  return panel("景気",`${qj(L[0])}`,`<div class="tiles t2"><div class="tile"><span>実質 GDP（${qj(L[0])}）</span><b>${f(L[1],1)}%</b></div><div class="tile"><span>GDPNow（${gn?qj(gn.quarter):""}）</span><b>${ne?f(ne[1],2):"–"}%</b></div></div>${C}${lg([["実質 GDP（前期比年率）","#5fd08e"],...(ahead?[["GDPNow","#2ee6ff"]]:[])])}${evo}${trk}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
 let Nw0=null;
 function renderRate(){
