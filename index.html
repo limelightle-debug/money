@@ -388,6 +388,48 @@ function policyPanel(A){
   return panel("政策金利と名目中立",`1990年〜　四半期`,`<div class="hd">${run?"中立の上は、例外の場所":"中立の下にいる"}<small>政策金利 − 名目中立 = ${sg(pol-A.N,3)}</small></div>${C}
     ${lg([["名目中立（LW + 2、足元は LW Now + 2）","#fff"],["政策金利（FF 実効）","#2ee6ff"]])}<div class="rd">${P.map(x=>`<p>${x}</p>`).join("")}</div>`);
 }
+// the 2-year yield by month (candles from the daily par yields in money.json real.all) with MACD (12, 26, 9) on the
+// month-end yields, as in the institute's paper: the speed at which the priced hikes build, and whether it is growing or
+// fading. Dashed: the S&P 500's bottoms in the hiking cycles into a hot economy (2018/12/24, 2022/10/12, 2023/10/27)
+function y2mSvg(Wd){
+  const A=J.mo&&J.mo.real&&J.mo.real.all;if(!A)return"";
+  const M=[];let cur=null;
+  for(const r of A){if(r[1]==null)continue;const k=String(r[0]).slice(0,6);
+    if(!cur||cur.k!==k){cur={k,o:r[1],h:r[1],l:r[1],c:r[1]};M.push(cur)}else{cur.h=Math.max(cur.h,r[1]);cur.l=Math.min(cur.l,r[1]);cur.c=r[1]}}
+  if(M.length<40)return"";
+  const ema=(a,n)=>{const k=2/(n+1),o=[a[0]];for(let i=1;i<a.length;i++)o.push(k*a[i]+(1-k)*o[i-1]);return o};
+  const C=M.map(m=>m.c),e1=ema(C,12),e2=ema(C,26),md=C.map((_,i)=>e1[i]-e2[i]),sg=ema(md,9),hs=md.map((v,i)=>v-sg[i]);
+  const i0=Math.max(0,M.findIndex(m=>m.k>="201701")),S=M.slice(i0),MD=md.slice(i0),SG=sg.slice(i0),HS=hs.slice(i0),n=S.length;
+  const ML=28,MR=44,PW=Wd-ML-MR,H1=190,H2=110,G=14,MT=8,MB=18,H=MT+H1+G+H2+MB,bw=Math.max(1,PW/n*.62),x=i=>ML+(i+.5)/n*PW;
+  const lo=Math.floor(Math.min(...S.map(m=>m.l))*2)/2,hi=Math.ceil(Math.max(...S.map(m=>m.h))*2)/2,y=v=>MT+(hi-v)/(hi-lo)*H1;
+  const mx=Math.max(...MD.map(Math.abs),...HS.map(Math.abs))*1.08,T2=MT+H1+G,z=T2+H2/2,ym=v=>z-v/mx*(H2/2);
+  const up="#5fd08e",dn="#ff7a7a",yt=[];for(let v=lo;v<=hi+1e-9;v+=1)yt.push(v);
+  const yrs=[];S.forEach((m,i)=>{if(i&&m.k.slice(4)==="01")yrs.push([i,m.k.slice(0,4)])});
+  const btm=["201812","202210","202310"].map(k=>S.findIndex(m=>m.k===k)).filter(i=>i>=0);
+  const ln=a=>a.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${ym(v).toFixed(1)}`).join("");
+  const L=S[n-1],lh=HS[n-1];
+  return `<svg viewBox="0 0 ${Wd} ${H}" height="${H}">
+    ${yt.map(v=>`<line x1="${ML}" x2="${ML+PW}" y1="${y(v)}" y2="${y(v)}" stroke="#fff" stroke-opacity=".06"/><text x="${ML-6}" y="${y(v)+3}" text-anchor="end">${v.toFixed(0)}</text>`).join("")}
+    ${yrs.map(([i,l])=>`<line x1="${x(i)}" x2="${x(i)}" y1="${MT}" y2="${T2+H2}" stroke="#fff" stroke-opacity=".05"/><text x="${x(i)}" y="${H-5}" text-anchor="middle">${(+l%2===0||yrs.length<7)?l:""}</text>`).join("")}
+    ${btm.map(i=>`<line x1="${x(i)}" x2="${x(i)}" y1="${MT}" y2="${T2+H2}" stroke="#ffe066" stroke-opacity=".55" stroke-dasharray="2 3"/>`).join("")}
+    ${S.map((m,i)=>{const c=m.c>=m.o?up:dn;return `<line x1="${x(i)}" x2="${x(i)}" y1="${y(m.h)}" y2="${y(m.l)}" stroke="${c}" stroke-width="1"/><rect x="${(x(i)-bw/2).toFixed(1)}" y="${y(Math.max(m.o,m.c)).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,Math.abs(y(m.o)-y(m.c))).toFixed(1)}" fill="${c}"/>`}).join("")}
+    <text x="${ML+PW+6}" y="${y(L.c)+3.5}" style="fill:#f2f2f7;font-weight:700">${L.c.toFixed(2)}</text>
+    <line x1="${ML}" x2="${ML+PW}" y1="${z}" y2="${z}" stroke="#fff" stroke-opacity=".25"/>
+    ${HS.map((v,i)=>{const p=i?HS[i-1]:v,c=v>=0?(v>=p?"#5fd08e":"#5fd08e80"):(v<=p?"#ff5a5a":"#ff5a5a80");return `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${Math.min(z,ym(v)).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(.5,Math.abs(ym(v)-z)).toFixed(1)}" fill="${c}"/>`}).join("")}
+    <path d="${ln(MD)}" fill="none" stroke="#f2f2f7" stroke-width="1.3"/><path d="${ln(SG)}" fill="none" stroke="#ffb547" stroke-width="1.2"/>
+    <text x="${ML+PW+6}" y="${ym(lh)+3.5}" style="fill:${lh>=0?"#5fd08e":"#ff5a5a"};font-weight:700">${lh>=0?"+":"−"}${Math.abs(lh).toFixed(3)}</text>
+    <text x="${ML+4}" y="${T2+10}">MACD</text></svg>`;
+}
+function y2mBlock(){
+  const Wd=W(),svg=y2mSvg(Wd);if(!svg)return"";
+  const A=J.mo.real.all,mk=String(A[A.length-1][0]).slice(0,6),d=new Date(),open=mk===`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,"0")}`;
+  // how far the priced hikes reach, day by day (fedwatch.json peakHist), beside the 2-year yield since the start of the year
+  const fw=J.fw,PH=(fw&&fw.peakHist||[]).map(r=>[dms(r[0]),r[1]]),y0=`${d.getFullYear()-(d.getMonth()<6?1:0)}0101`;
+  const Y2=A.filter(r=>String(r[0])>=y0&&r[1]!=null).map(r=>[dms(r[0]),r[1]]);
+  const tr=PH.length>1||Y2.length>1?`<div class="lbl" style="margin-top:12px">利上げの織り込みの推移（%）</div>${lg([["2年債利回り","#ffffff"],["織り込まれた政策金利の天井","#6ec3ff"]])}${chart([{p:Y2,c:"#ffffff",w:1.3,u:"%"},{p:PH,c:"#6ec3ff",w:2,u:"%"}],{H:200})}`:"";
+  return `${tr}<div class="lbl" style="margin-top:12px">2年債利回り（月足）とMACD</div>${lg([["MACD","#f2f2f7"],["シグナル","#ffb547"],["ヒストグラム","#5fd08e"],["株の底","#ffe066",1]])}<div class="rchart">${svg}</div>
+    <p class="note">2年債は織り込まれた利上げの道筋なので、MACD（12・26・9、月末値）はその織り込みが強まる速さ、ヒストグラムはその速さが増しているか衰えているかを示す。過熱した景気への利上げでは、株の底は織り込みが緩んだ時に来た（点線、2018年12月、2022年10月、2023年10月）。資金繰りでどこかが壊れた回（2000年、2006年に利上げを終えた回）は、底はもっと先だった。${open?`${+mk.slice(4)}月の足とヒストグラムは月末まで確定しない。`:""}</p>`;
+}
 function fedwPanel(A){
   const fw=J.fw;if(!fw||!fw.meetings)return"";
   const pol=(fw.target[0]+fw.target[1])/2,M=fw.meetings;
@@ -398,7 +440,7 @@ function fedwPanel(A){
     `${mdj(l.date)}までに市場は25bp換算で${sg(l.moves,1)}回分を織り込み、到達点${f(l.after)}は軸の${sg(l.after-A.N)}。`+(l.after>A.N+.25?"市場は中立のはっきり上まで上げると見ている。":l.after<A.N?"市場は中立の下へ戻ると見ている。":"市場は中立のすぐ上で止まると見ている。"),
     md.length?`FOMC の中央値は${md.slice(0,3).map(r=>`${r[0].slice(0,4)}年末${f(r[1],1)}`).join("、")}。${md[0][1]>A.N?"委員自身も中立の上を適切と見ている。":""}`:""];
   return panel("FedWatch と市場の織り込み",`誘導目標 ${f(fw.target[0])}〜${f(fw.target[1])}%`,`<div class="hd">${up?"市場は利上げを織り込む":"市場は据え置きか利下げを見る"}<small>${mdj(l.date)}会合後 ${f(l.after)}%（軸 ${f(A.N)}%）</small></div>
-    <table class="st"><tr><th>会合</th><th>最有力</th><th>確率</th><th>会合後</th><th>軸との差</th></tr>${rows}</table>
+    <table class="st"><tr><th>会合</th><th>最有力</th><th>確率</th><th>会合後</th><th>軸との差</th></tr>${rows}</table>${y2mBlock()}
     <div class="rd">${P.filter(Boolean).map(x=>`<p>${x}</p>`).join("")}</div>
     ${xpl("3つの乖離",[["政策金利との乖離","FOMC が実際に置いている金利と軸の差。"],["ドットプロットとの乖離","ドットは予測ではなく、委員が適切だと考える水準。年ごとの中央値の修正の向きを見る。"],["市場金利との乖離","FF 先物から読む会合後の金利と、10年・30年の利回りが軸からどれだけ離れているか。3つの差が、いま何が起きているかを示す（第八章）。"]])}`);
 }
